@@ -44,6 +44,11 @@ void callNCActKernel(cudaStream_t &st, unsigned int numBlocks, unsigned int numN
 	float *gInputSumMFNCNMDA, float *gInputSumMFNCAMPA, float eLeakNC, float gLeakNC,
 	float ePCtoNC, float threshRestNC, float threshMaxNC, float threshDecayNC);
 
+void callIOActKernel(cudaStream_t &st, unsigned int numBlocks, unsigned int numIOPerBlock, 
+	uint64_t seed, uint32_t *threadCallCounts, float *vIO, float *threshIO, uint8_t *apIO,
+	uint32_t *apBufIO, float *gInputSumNCIO, float *vCoupleIO, float eLeakIO, float gLeakIO,
+	float eNCtoIO, float *errDrive, float threshRestIO, float threshMaxIO, float threshDecayIO);
+
 template<typename Type, bool inMultiP, bool outMultiP>
 void callSumKernel(cudaStream_t &st, Type *inGPU, size_t inGPUP, Type *outSumGPU, size_t outSumGPUP,
 		unsigned int nOutCells, unsigned int nOutCols, unsigned int rowLength);
@@ -52,23 +57,17 @@ template<typename Type>
 void callBroadcastKernel(cudaStream_t &st, Type *broadCastVal, Type *outArray,
 		unsigned int nBlocks, unsigned int rowLength);
 
-void callUpdateGROutBCKernel(cudaStream_t &st, unsigned int numBlocks, unsigned int numGRPerBlock, unsigned int numBC,
-		uint32_t *apBufGPU, uint32_t *grInBCGPU, uint32_t grInBCGPUPitch,
-		uint32_t *delayMasksGPU, uint32_t delayMasksGPUPitch,
-		uint32_t *conGRtoBCGPU, size_t conGRtoBCGPUPitch,
-		int32_t *numBCPerGRGPU);
+void callUpdatePFBCOutKernel(cudaStream_t &st, unsigned int numBlocks, unsigned int numGRPerBlock,
+		uint32_t *apBufGPU, uint32_t *delayMaskGPU, uint32_t *inPFBCGPU, size_t inPFBCGPUPitch,
+		unsigned int numPFInPerBCP2);
 
-void callSumGRBCOutKernel(cudaStream_t &st, unsigned int numBlocks, unsigned int numGOPerBlock,
-		unsigned int numGROutRows, uint32_t *grInBCGPU,  size_t grInBCGPUPitch, uint32_t *grInBCSGPU);
-
-void callUpdatePFBCSCOutKernel(cudaStream_t &st, unsigned int numBlocks, unsigned int numGRPerBlock,
-		uint32_t *apBufGPU, uint32_t *delayMaskGPU,
-		uint32_t *inPFBCGPU, size_t inPFBCGPUPitch, unsigned int numPFInPerBCP2,
-		uint32_t *inPFSCGPU, size_t inPFSCGPUPitch, unsigned int numPFInPerSCP2);
+void callUpdatePFSCOutKernel(cudaStream_t &st, unsigned int numBlocks, unsigned int numGRPerBlock,
+		uint32_t *apBufGPU, uint32_t *delayMaskGPU, uint32_t *inPFSCGPU, size_t inPFSCGPUPitch,
+		unsigned int numPFInPerSCP2);
 
 void callUpdatePFPCOutKernel(cudaStream_t &st, unsigned int numBlocks, unsigned int numGRPerBlock,
-		uint32_t *apBufGPU, uint32_t *delayMaskGPU,
-		float *pfPCSynWGPU, float *inPFPCGPU, size_t inPFPCGPUPitch, unsigned int numPFInPerPCP2);
+		uint32_t *apBufGPU, uint32_t *delayMaskGPU, float *pfPCSynWGPU, float *inPFPCGPU,
+		size_t inPFPCGPUPitch, unsigned int numPFInPerPCP2);
 
 void callUpdateGRHistKernel(cudaStream_t &st, unsigned int numBlocks, unsigned int numGRPerBlock,
 		uint32_t *apBufGPU, uint64_t *historyGPU, uint32_t apBufGRHistMask);

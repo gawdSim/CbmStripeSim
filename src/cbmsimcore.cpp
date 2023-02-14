@@ -136,63 +136,37 @@ void CBMSimCore::calcActivity(float spillFrac, enum plasticity pf_pc_plast)
 	curTime++;
 
 	//inputNet->runGRActivitiesCUDA(streams, 0);
-
-	for (int i = 0; i < numZones; i++)
-	{
-		zones[i]->runPFPCSumCUDA(streams, i + 1);
-	}
-
-	for (int i = 0; i < numZones; i++)
-	{
-		zones[i]->runSumPFBCCUDA(streams, 2);
-		zones[i]->runSumPFSCCUDA(streams, 3);
-	}
-
-	if (pf_pc_plast == GRADED)
-	{
-		for (int i = 0; i < numZones; i++)
-		{
-			zones[i]->runPFPCPlastCUDA(streams, 1, curTime);
-		}
-	}
-	//inputNet->cpyDepAmpMFHosttoGPUCUDA(streams, 5);
-
-	//inputNet->cpyAPMFHosttoGPUCUDA(streams, 6);
-
-	for (int i = 0; i < numZones; i++)
-	{
-		zones[i]->calcPCActivities();
-		zones[i]->calcSCActivities();
-		zones[i]->calcBCActivities();
-	}
-
-	// TODO: put in macro def for num_gpus so we don't run this line if running on one GPU
-	//syncCUDA("2");
-
-	for (int i = 0; i < numZones; i++)
-	{
-		zones[i]->runPFPCOutCUDA(streams, i + 2);
-		zones[i]->cpyPFPCSumCUDA(streams, i + 2);
-		zones[i]->runUpdatePFBCSCOutCUDA(streams, i + 4); // adding i might break things in future
-	}
-
-	for (int i = 0; i < numZones; i++)
-	{
-		zones[i]->cpyPFBCSumGPUtoHostCUDA(streams, 5);
-		zones[i]->cpyPFSCSumGPUtoHostCUDA(streams, 3);
-	}
-
 	//inputNet->runUpdateGRHistoryCUDA(streams, 4, curTime);
 
 	for (int i = 0; i < numZones; i++)
 	{
-		zones[i]->calcIOActivities();
-		zones[i]->calcNCActivities();
+		if (pf_pc_plast == GRADED)
+		{
+			zones[i]->runPFPCPlastCUDA(streams, 1, curTime);
+		}
+
+		zones[i]->runUpdatePFBCOutCUDA(streams, i+4);
+		zones[i]->runUpdatePFSCOutCUDA(streams, i+4);
+		zones[i]->runPFPCOutCUDA(streams, i + 2);
+
+		zones[i]->runSumPFBCCUDA(streams, 2);
+		zones[i]->runSumPFSCCUDA(streams, 3);
+		zones[i]->runPFPCSumCUDA(streams, i + 1);
+		
+		zones[i]->calcSCActivities();
+		zones[i]->calcBCActivities();
+
 		zones[i]->updateBCPCOut();
 		zones[i]->updateSCPCOut();
+
+		zones[i]->calcPCActivities();
 		zones[i]->updatePCOut();
-		zones[i]->updateIOOut();
+
+		zones[i]->calcNCActivities();
 		zones[i]->updateNCOut();
+
+		zones[i]->calcIOActivities();
+		zones[i]->updateIOOut();
 	}
 }
 

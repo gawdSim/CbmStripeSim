@@ -50,7 +50,8 @@ public:
 	void runSumPFSCCUDA(cudaStream_t **sts, int streamN);
 	void cpyPFSCSumGPUtoHostCUDA(cudaStream_t **sts, int streamN);
 
-	void runUpdatePFBCSCOutCUDA(cudaStream_t **sts, int streamN);
+	void runUpdatePFBCOutCUDA(cudaStream_t **sts, int streamN);
+	void runUpdatePFSCOutCUDA(cudaStream_t **sts, int streamN);
 
 	void runSumPFBCCUDA(cudaStream_t **sts, int streamN);
 	void cpyPFBCSumGPUtoHostCUDA(cudaStream_t **sts, int streamN);

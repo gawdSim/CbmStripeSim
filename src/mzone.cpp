@@ -771,16 +771,25 @@ void MZone::cpyPFSCSumGPUtoHostCUDA(cudaStream_t **sts, int streamN)
 	}
 }
 
-void MZone::runUpdatePFBCSCOutCUDA(cudaStream_t **sts, int streamN)
+void MZone::runUpdatePFBCOutCUDA(cudaStream_t **sts, int streamN)
 {
 	cudaError_t error;
 	for(int i=0; i<numGPUs; i++)
 	{
 		error=cudaSetDevice(i+gpuIndStart);
-		callUpdatePFBCSCOutKernel(sts[i][streamN], updatePFBCSCNumBlocks, updatePFBCSCNumGRPerB,
-				apBufGRGPU[i], delayMaskGRGPU[i],
-				inputPFBCGPU[i], inputPFBCGPUP[i], num_p_bc_from_gr_to_bc_p2, 
-				inputPFSCGPU[i], inputPFSCGPUP[i], num_p_sc_from_gr_to_sc_p2); 
+		callUpdatePFBCOutKernel(sts[i][streamN], updatePFBCSCNumBlocks, updatePFBCSCNumGRPerB,
+				apBufGRGPU[i], delayMaskGRGPU[i], inputPFBCGPU[i], inputPFBCGPUP[i], num_p_bc_from_gr_to_bc_p2);
+	}
+}
+
+void MZone::runUpdatePFSCOutCUDA(cudaStream_t **sts, int streamN)
+{
+	cudaError_t error;
+	for(int i=0; i<numGPUs; i++)
+	{
+		error=cudaSetDevice(i+gpuIndStart);
+		callUpdatePFSCOutKernel(sts[i][streamN], updatePFBCSCNumBlocks, updatePFBCSCNumGRPerB,
+				apBufGRGPU[i], delayMaskGRGPU[i], inputPFSCGPU[i], inputPFSCGPUP[i], num_p_sc_from_gr_to_sc_p2);
 	}
 }
 

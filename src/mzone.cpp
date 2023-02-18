@@ -82,20 +82,29 @@ MZone::~MZone()
 	delete[] inputPFPCGPUPitch;
 	delete[] inputSumPFPCMZGPU;
 
-	//sc
+	// sc
 	cudaSetDevice(gpuIndStart);
-	cudaFreeHost(inputSumPFSCH);
 
 	cudaDeviceSynchronize();
 	for (int i = 0; i < numGPUs; i++)
 	{
 		cudaSetDevice(i+gpuIndStart);
-
+		cudaFree(apSCGPU[i]);
+		cudaFree(apBufSCGPU[i]);
+		cudaFree(gPFSCGPU[i]);
+		cudaFree(threshSCGPU[i]);
+		cudaFree(vSCGPU[i]);
 		cudaFree(inputPFSCGPU[i]);
 		cudaFree(inputSumPFSCGPU[i]);
 
 		cudaDeviceSynchronize();
 	}
+
+	delete[] apSCGPU;
+	delete[] apBufSCGPU;
+	delete[] gPFSCGPU;
+	delete[] threshSCGPU;
+	delete[] vSCGPU;
 
 	delete[] inputPFSCGPU;
 	delete[] inputPFSCGPUP;
@@ -130,6 +139,7 @@ void MZone::initCUDA()
 	cudaGetDeviceCount(&maxNumGPUs);
 
 	numGRPerGPU = num_gr / numGPUs;
+	numSCPerGPU = num_sc / numGPUs;
 
 	updatePFPCNumGRPerB = 512;
 	updatePFPCNumBlocks = numGRPerGPU / updatePFPCNumGRPerB;
@@ -140,6 +150,9 @@ void MZone::initCUDA()
 
 	updatePFBCSCNumGRPerB = 512;
 	updatePFBCSCNumBlocks = numGRPerGPU / updatePFBCSCNumGRPerB;
+
+	calcSCActNumSCPerB = 512;
+	calcSCActNumBlocks = numSCPerGPU / calcSCActNumSCPerB;
 
 	/* ======== not used ====== */
 	updateGRBCOutNumGRPerR=512*(num_bc>512)+num_bc*(num_bc<=512);
@@ -264,6 +277,12 @@ void MZone::initBCCUDA()
 
 void MZone::initSCCUDA()
 {
+	apSCGPU = new uint8_t*[numGPUs];
+	apBufSCGPU = new uint32_t*[numGPUs];
+	gPFSCGPU = new float*[numGPUs];
+	threshSCGPU = new float*[numGPUs];
+	vSCGPU = new float*[numGPUs];
+
 	inputPFSCGPU    = new uint32_t*[numGPUs];
 	inputPFSCGPUP   = new size_t[numGPUs];
 	inputSumPFSCGPU = new uint32_t*[numGPUs];
@@ -271,17 +290,20 @@ void MZone::initSCCUDA()
 	//allocate host memory
 	LOG_DEBUG("Allocating SC cuda variables...");
 	cudaSetDevice(gpuIndStart);
-	cudaHostAlloc((void **)&inputSumPFSCH, num_sc * sizeof(uint32_t), cudaHostAllocPortable);
-	cudaMemset(inputSumPFSCH, 0, num_sc * sizeof(uint32_t));
 
 	cudaDeviceSynchronize();
 
 	for (int i = 0; i < numGPUs; i++)
 	{
 		cudaSetDevice(i + gpuIndStart);
+		cudaMalloc((void **)&apSCGPU[i], numSCPerGPU * sizeof(uint8_t));
+		cudaMalloc((void **)&apBufSCGPU[i], numSCPerGPU * sizeof(uint32_t));
+		cudaMalloc((void **)&gPFSCGPU[i], numSCPerGPU * sizeof(float));
+		cudaMalloc((void **)&threshSCGPU[i], numSCPerGPU * sizeof(float));
+		cudaMalloc((void **)&vSCGPU[i], numSCPerGPU * sizeof(float));
 		cudaMallocPitch((void **)&inputPFSCGPU[i], (size_t *)&inputPFSCGPUP[i],
-				num_p_sc_from_gr_to_sc * sizeof(uint32_t), num_sc / numGPUs);
-		cudaMalloc((void **)&inputSumPFSCGPU[i], num_sc / numGPUs * sizeof(uint32_t));
+				num_p_sc_from_gr_to_sc * sizeof(uint32_t), numSCPerGPU);
+		cudaMalloc((void **)&inputSumPFSCGPU[i], numSCPerGPU * sizeof(uint32_t));
 
 		cudaDeviceSynchronize();
 	}
@@ -292,13 +314,20 @@ void MZone::initSCCUDA()
 	LOG_DEBUG("Initializing SC cuda variables...");
 	for (int i = 0; i < numGPUs; i++)
 	{
+		int cpyStartInd = numGRPerGPU * i;
+		int cpySize     = numGRPerGPU;
 		cudaSetDevice(i + gpuIndStart);
-		for(int j =0; j < num_sc / numGPUs; j++)
+		cudaMemset(apSCGPU[i], 0, numSCPerGPU * sizeof(uint8_t));
+		cudaMemset(apBufSCGPU[i], 0, numSCPerGPU * sizeof(uint32_t));
+		cudaMemset(gPFSCGPU[i], 0, numSCPerGPU * sizeof(float));
+		cudaMemcpy(threshSCGPU[i], &(as->threshSC[cpyStartInd]), cpySize * sizeof(float), cudaMemcpyHostToDevice);
+		cudaMemcpy(vSCGPU[i], &(as->vSC[cpyStartInd]), cpySize * sizeof(float), cudaMemcpyHostToDevice);
+		for(int j =0; j < numSCPerGPU; j++)
 		{
 			cudaMemset(((char *)inputPFSCGPU[i] + j * inputPFSCGPUP[i]), 0,
 					num_p_sc_from_gr_to_sc * sizeof(uint32_t));
 		}
-		cudaMemset(inputSumPFSCGPU[i], 0, num_sc / numGPUs * sizeof(uint32_t));
+		cudaMemset(inputSumPFSCGPU[i], 0, numSCPerGPU * sizeof(uint32_t));
 
 		cudaDeviceSynchronize();
 	}
@@ -375,20 +404,14 @@ void MZone::calcPCActivities()
 	}
 }
 
-void MZone::calcSCActivities()
+void MZone::runSCActivitiesCUDA(cudaStream_t **sts, int streamN)
 {
-	for (int i = 0; i < num_sc; i++)
+	for (int i = 0; i < numGPUs; i++)
 	{
-		as->gPFSC[i] = as->gPFSC[i] + inputSumPFSCH[i] * gIncGRtoSC;
-		as->gPFSC[i] = as->gPFSC[i] * gDecGRtoSC;
-
-		as->vSC[i] = as->vSC[i] + gLeakSC * (eLeakSC - as->vSC[i]) - as->gPFSC[i] * as->vSC[i];
-		as->threshSC[i] = as->threshSC[i] + threshDecSC * (threshRestSC - as->threshSC[i]);
-
-		as->apSC[i] = (as->vSC[i] > as->threshSC[i]);
-		as->apBufSC[i] = (as->apBufSC[i] << 1) | (as->apSC[i] * 0x00000001);
-
-		as->threshSC[i] = as->apSC[i] * threshMaxSC + (!as->apSC[i]) * as->threshSC[i];
+		cudaSetDevice(i + gpuIndStart);
+		callSCActKernel(sts[i][streamN], calcSCActNumBlocks, calcSCActNumSCPerB, 
+		vSCGPU[i], gPFSCGPU[i], threshSCGPU[i], apSCGPU[i], apBufSCGPU[i], inputSumPFSCGPU[i],
+		eLeakSC, gLeakSC, gIncGRtoSC, gDecGRtoSC, threshRestSC, threshMaxSC, threshDecSC);
 	}
 }
 
@@ -659,7 +682,7 @@ void MZone::updateNCOut()
 //#endif
 //}
 
-void MZone::runPFPCOutCUDA(cudaStream_t **sts, int streamN)
+void MZone::runUpdatePFPCOutCUDA(cudaStream_t **sts, int streamN)
 {
 	for (int i = 0; i < numGPUs; i++)
 	{
@@ -670,7 +693,7 @@ void MZone::runPFPCOutCUDA(cudaStream_t **sts, int streamN)
 	}
 }
 
-void MZone::runPFPCSumCUDA(cudaStream_t **sts, int streamN)
+void MZone::runSumPFPCCUDA(cudaStream_t **sts, int streamN)
 {
 	for (int i = 0; i < numGPUs; i++)
 	{
@@ -755,19 +778,7 @@ void MZone::runSumPFSCCUDA(cudaStream_t **sts, int streamN)
 		error=cudaSetDevice(i+gpuIndStart);
 		callSumKernel<uint32_t, true, false>
 		(sts[i][streamN], inputPFSCGPU[i], inputPFSCGPUP[i],
-				inputSumPFSCGPU[i], 1, num_sc/numGPUs, 1, num_p_sc_from_gr_to_sc);
-	}
-}
-
-void MZone::cpyPFSCSumGPUtoHostCUDA(cudaStream_t **sts, int streamN)
-{
-	cudaError_t error;
-	for(int i=0; i<numGPUs; i++)
-	{
-		error=cudaSetDevice(i+gpuIndStart);
-		error=cudaMemcpyAsync(&inputSumPFSCH[num_sc * i / numGPUs], inputSumPFSCGPU[i],
-				num_sc / numGPUs * sizeof(uint32_t),
-				cudaMemcpyDeviceToHost, sts[i][streamN]);
+				inputSumPFSCGPU[i], 1, numSCPerGPU, 1, num_p_sc_from_gr_to_sc);
 	}
 }
 
@@ -977,11 +988,11 @@ void MZone::testReduction()
 		cudaMallocPitch(&gpuBCTestData[i], &gpuBCP[i],
 				num_p_bc_from_gr_to_bc * sizeof(float), num_bc / numGPUs);
 		cudaMallocPitch(&gpuSCTestData[i], &gpuSCP[i],
-				num_p_sc_from_gr_to_sc*sizeof(float), num_sc / numGPUs);
+				num_p_sc_from_gr_to_sc*sizeof(float), numSCPerGPU);
 
 		cudaMalloc(&gpuPCSum[i], num_pc / numGPUs * sizeof(float));
 		cudaMalloc(&gpuBCSum[i], num_bc / numGPUs * sizeof(float));
-		cudaMalloc(&gpuSCSum[i], num_sc / numGPUs * sizeof(float));
+		cudaMalloc(&gpuSCSum[i], numSCPerGPU * sizeof(float));
 
 		LOG_DEBUG("Allocating memory for gpu %d", i);
 		LOG_DEBUG("Last error: %s", cudaGetErrorString(cudaGetLastError()));
@@ -1007,7 +1018,7 @@ void MZone::testReduction()
 				 num_p_bc_from_gr_to_bc * sizeof(float), cudaMemcpyHostToDevice);
 		}
 
-		for (int j = 0; j < num_sc / numGPUs; j++)
+		for (int j = 0; j < numSCPerGPU; j++)
 		{
 		   cudaMemcpy(((char *)gpuSCTestData[i] + j * gpuSCP[i]),
 				 &hostTestData[i * numGRPerGPU + j * num_p_sc_from_gr_to_sc],
@@ -1060,7 +1071,7 @@ void MZone::testReduction()
 				gpuBCSum[i], 1, num_bc / numGPUs, 1, num_p_bc_from_gr_to_bc);
 
 		callSumKernel<float, true, false>(sts[i], gpuSCTestData[i], gpuSCP[i],
-				gpuSCSum[i], 1, num_sc / numGPUs, 1, num_p_sc_from_gr_to_sc);
+				gpuSCSum[i], 1, numSCPerGPU, 1, num_p_sc_from_gr_to_sc);
 
 		cudaDeviceSynchronize();
 
@@ -1076,15 +1087,15 @@ void MZone::testReduction()
 			num_pc / numGPUs * sizeof(float), cudaMemcpyDeviceToHost);
 		cudaMemcpy(&gpuToHostBCSum[i * num_bc / numGPUs], gpuBCSum[i],
 			num_bc / numGPUs * sizeof(float), cudaMemcpyDeviceToHost);
-		cudaMemcpy(&gpuToHostSCSum[i * num_sc / numGPUs], gpuSCSum[i],
-			num_sc / numGPUs * sizeof(float), cudaMemcpyDeviceToHost);
+		cudaMemcpy(&gpuToHostSCSum[i * numSCPerGPU], gpuSCSum[i],
+			numSCPerGPU * sizeof(float), cudaMemcpyDeviceToHost);
 
 		cudaDeviceSynchronize();
 	}
 
 	LOG_DEBUG("NumPC per GPU: %d", num_pc / numGPUs);
 	LOG_DEBUG("NumBC per GPU: %d", num_bc / numGPUs);
-	LOG_DEBUG("NumSC per GPU: %d", num_sc / numGPUs);
+	LOG_DEBUG("NumSC per GPU: %d", numSCPerGPU);
 
 	for (int i = 0; i < numGPUs; i++)
 	{

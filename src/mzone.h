@@ -29,6 +29,7 @@ public:
 	//void updateTrueMFs(bool *trueMF);
 
 	void calcPCActivities();
+	void runSCActivitiesCUDA(cudaStream_t **sts, int streamN);
 	void calcSCActivities();
 	void calcBCActivities();
 	void calcIOActivities();
@@ -42,13 +43,12 @@ public:
 	//void updateMFNCOut();
 	//void updateMFNCSyn(const uint8_t *histMF, uint32_t t);
 
-	void runPFPCOutCUDA(cudaStream_t **sts, int streamN);
-	void runPFPCSumCUDA(cudaStream_t **sts, int streamN);
+	void runUpdatePFPCOutCUDA(cudaStream_t **sts, int streamN);
+	void runSumPFPCCUDA(cudaStream_t **sts, int streamN);
 	void cpyPFPCSumCUDA(cudaStream_t **sts, int streamN);
 	void runPFPCPlastCUDA(cudaStream_t **sts, int streamN, uint32_t t);
 
 	void runSumPFSCCUDA(cudaStream_t **sts, int streamN);
-	void cpyPFSCSumGPUtoHostCUDA(cudaStream_t **sts, int streamN);
 
 	void runUpdatePFBCOutCUDA(cudaStream_t **sts, int streamN);
 	void runUpdatePFSCOutCUDA(cudaStream_t **sts, int streamN);
@@ -91,6 +91,7 @@ private:
 	int gpuIndStart;
 	int numGPUs;
 	int numGRPerGPU;
+	int numSCPerGPU;
 
 	unsigned int updatePFPCNumGRPerB;
 	unsigned int updatePFPCNumBlocks;
@@ -100,6 +101,9 @@ private:
 
 	unsigned int updatePFBCSCNumGRPerB;
 	unsigned int updatePFBCSCNumBlocks;
+
+	unsigned int calcSCActNumSCPerB;
+	unsigned int calcSCActNumBlocks;
 
 	/* ======== not used ====== */
 	unsigned int updateGRBCOutNumGRPerR;
@@ -116,10 +120,11 @@ private:
 
 	//stellate cell variables
 	//host variables
-	uint32_t *inputSumPFSCH;
-	//end host variables
-
-	//gpu related variables
+	uint8_t **apSCGPU;
+	uint32_t **apBufSCGPU;
+	float **gPFSCGPU;
+	float **threshSCGPU;
+	float **vSCGPU;
 	uint32_t **inputPFSCGPU;
 	size_t *inputPFSCGPUP;
 	uint32_t **inputSumPFSCGPU;

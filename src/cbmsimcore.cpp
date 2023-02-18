@@ -154,7 +154,7 @@ void CBMSimCore::calcActivity(float spillFrac, enum plasticity pf_pc_plast)
 		zones[i]->runSumPFPCCUDA(streams, i + 1);
 		
 		zones[i]->runSCActivitiesCUDA(streams, i+3);
-		zones[i]->calcBCActivities();
+		zones[i]->runBCActivitiesCUDA(streams, i);
 
 		zones[i]->updateBCPCOut();
 		zones[i]->updateSCPCOut();

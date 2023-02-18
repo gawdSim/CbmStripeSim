@@ -35,7 +35,7 @@ void callSCActKernel(cudaStream_t &st, unsigned int numBlocks, unsigned int numS
 
 void callBCActKernel(cudaStream_t &st, unsigned int numBlocks, unsigned int numBCPerBlock, 
 	float *vBC, float *gPFBC, float *gPCBC, float *threshBC, uint8_t *apBC, uint32_t *apBufBC,
-	float *gInputSumPFBC, float *gInputSumPCBC, float eLeakBC, float gLeakBC, float gIncPFBC,
+	uint32_t *gInputSumPFBC, uint32_t *gInputSumPCBC, float eLeakBC, float gLeakBC, float gIncPFBC,
 	float gIncPCBC, float ePCtoBC, float gDecPFBC, float gDecPCBC, float threshRestBC,
 	float threshMaxBC, float threshDecayBC);
 

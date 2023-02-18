@@ -195,7 +195,7 @@ __global__ void calcPCActivity(float *vPC, float *gPFPC, float *gSCPC, float *gB
 //**---------------BC kernels-----------------**
 
 __global__ void calcBCActivity(float *vBC, float *gPFBC, float *gPCBC, float *threshBC,
-	uint8_t *apBC, uint32_t *apBufBC, float *gInputSumPFBC, float *gInputSumPCBC, 
+	uint8_t *apBC, uint32_t *apBufBC, uint32_t *gInputSumPFBC, uint32_t *gInputSumPCBC, 
 	float eLeakBC, float gLeakBC, float gIncPFBC, float gIncPCBC, float ePCtoBC,
 	float gDecPFBC, float gDecPCBC, float threshRestBC, float threshMaxBC, float threshDecayBC)
 {
@@ -452,7 +452,7 @@ void callSCActKernel(cudaStream_t &st, unsigned int numBlocks, unsigned int numS
 
 void callBCActKernel(cudaStream_t &st, unsigned int numBlocks, unsigned int numBCPerBlock, 
 	float *vBC, float *gPFBC, float *gPCBC, float *threshBC, uint8_t *apBC, uint32_t *apBufBC,
-	float *gInputSumPFBC, float *gInputSumPCBC, float eLeakBC, float gLeakBC, float gIncPFBC,
+	uint32_t *gInputSumPFBC, uint32_t *gInputSumPCBC, float eLeakBC, float gLeakBC, float gIncPFBC,
 	float gIncPCBC, float ePCtoBC, float gDecPFBC, float gDecPCBC, float threshRestBC,
 	float threshMaxBC, float threshDecayBC)
 {

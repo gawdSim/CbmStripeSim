@@ -30,8 +30,7 @@ public:
 
 	void calcPCActivities();
 	void runSCActivitiesCUDA(cudaStream_t **sts, int streamN);
-	void calcSCActivities();
-	void calcBCActivities();
+	void runBCActivitiesCUDA(cudaStream_t **sts, int streamN);
 	void calcIOActivities();
 	void calcNCActivities();
 
@@ -92,6 +91,7 @@ private:
 	int numGPUs;
 	int numGRPerGPU;
 	int numSCPerGPU;
+	int numBCPerGPU;
 
 	unsigned int updatePFPCNumGRPerB;
 	unsigned int updatePFPCNumBlocks;
@@ -104,6 +104,9 @@ private:
 
 	unsigned int calcSCActNumSCPerB;
 	unsigned int calcSCActNumBlocks;
+
+	unsigned int calcBCActNumBCPerB;
+	unsigned int calcBCActNumBlocks;
 
 	/* ======== not used ====== */
 	unsigned int updateGRBCOutNumGRPerR;
@@ -135,10 +138,20 @@ private:
 	//host variables
 	uint32_t *inputSumPFBCH;
 
-	//gpu related variables
+	uint8_t **apBCGPU;
+	uint32_t **apBufBCGPU;
+	float **gPFBCGPU;
+	float **gPCBCGPU;
+	float **threshBCGPU;
+	float **vBCGPU;
+
 	uint32_t **inputPFBCGPU;
 	size_t *inputPFBCGPUP;
 	uint32_t **inputSumPFBCGPU;
+
+	uint32_t **inputPCBCGPU;
+	size_t *inputPCBCGPUP;
+	uint32_t **inputSumPCBCGPU;
 	//end gpu related variables
 	//end basket cell variables
 

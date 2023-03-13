@@ -10,6 +10,9 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstddef>
+#include <time.h>
+#include "sfmt.h"
+
 #include "file_utility.h"
 
 template<typename Type>
@@ -24,6 +27,53 @@ Type** allocate2DArray(unsigned long long numRows, unsigned long long numCols)
 	}
 
 	return retArr;
+}
+
+// potentially dangerous: does not check the diminesions of the new array
+template <typename Type>
+Type** transpose2DArray(Type **result, Type **in, unsigned long long num_rows_old, unsigned long long num_cols_old)
+{
+	for (unsigned long long i = 0; i < num_rows_old; i++)
+	{
+		for (unsigned long long j = 0; j < num_cols_old; j++)
+		{
+			result[j][i] = in[i][j];
+		}
+	}
+}
+
+// IMPORTANT: SHUFFLES IN-PLACE
+template <typename Type>
+void shuffle_along_axis(Type **in_arr, unsigned long long num_rows, unsigned long long num_cols, unsigned int axis = 0)
+{
+	CRandomSFMT0 randGen(time(0));
+	if (axis == 0)
+	{
+		Type *shared_row_buf = (Type *)calloc(num_cols, sizeof(Type));
+		for (size_t i = 0; i < num_rows; i++)
+		{
+			size_t j = i + randGen.IRandom(0, num_rows - i - 1);
+			memcpy(shared_row_buf, in_arr[j], num_cols * sizeof(Type));
+			memcpy(in_arr[j], in_arr[i], num_cols * sizeof(Type));
+			memcpy(in_arr[i], shared_row_buf, num_cols * sizeof(Type));
+		}
+		free(shared_row_buf);
+	}
+	else
+	{
+		Type *shared_col_buf = (Type *)calloc(num_rows, sizeof(Type));
+		for (size_t i = 0; i < num_cols; i++)
+		{
+			size_t j = i + randGen.IRandom(0, num_cols - i - 1);
+			for (size_t k = 0; k < num_rows; k++)
+			{
+				shared_col_buf[k] = in_arr[k][i]; // painful if columns are loooooong
+				in_arr[k][j] = in_arr[k][i];
+				in_arr[k][i] = shared_col_buf[k];
+			}
+		}
+		free(shared_col_buf);
+	}
 }
 
 template <typename Type>

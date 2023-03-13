@@ -26,10 +26,9 @@ class PoissonRegenCells
 {
 public:
 	PoissonRegenCells();
-	PoissonRegenCells(int randSeed, std::fstream &fr_file_buf);
+	PoissonRegenCells(int randSeed, std::fstream &psth_file_buf);
 	~PoissonRegenCells();
 
-	void init_fr_from_file(std::fstream &input_file_buf);
 	void calcGRPoissActivity(uint32_t ts);
 	void fill_rasters(uint32_t ts);
 	void fill_psths(uint32_t ts);
@@ -41,7 +40,8 @@ public:
 	uint64_t **getApHistGR();
 
 private:
-
+	void init_fr_from_file(std::fstream &input_file_buf);
+	void init_templates_from_psth_file(std::fstream &input_psth_file_buf);
 	std::normal_distribution<float> *normDist;
 	std::mt19937 *noiseRandGen;
 	CRandomSFMT0 *randSeedGen;
@@ -49,11 +49,17 @@ private:
 
 	unsigned int nThreads;
 
+	float threshBase;
+	float threshMax;
+	float threshDecTau;
+	float threshDec;
 	float sPerTS;
 
 	uint8_t **psths;
 	uint8_t **rasters;
 	float **gr_fr;
+	float **gr_pdfs;
+	float *threshs;
 	uint8_t *aps;
 	uint32_t **apBufs;
 	uint64_t **apHists;

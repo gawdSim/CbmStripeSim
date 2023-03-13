@@ -29,8 +29,8 @@ public:
 	//void updateTrueMFs(bool *trueMF);
 
 	void calcPCActivities();
-	void calcSCActivities();
-	void calcBCActivities();
+	void runSCActivitiesCUDA(cudaStream_t **sts, int streamN);
+	void runBCActivitiesCUDA(cudaStream_t **sts, int streamN);
 	void calcIOActivities();
 	void calcNCActivities();
 
@@ -42,13 +42,12 @@ public:
 	//void updateMFNCOut();
 	//void updateMFNCSyn(const uint8_t *histMF, uint32_t t);
 
-	void runPFPCOutCUDA(cudaStream_t **sts, int streamN);
-	void runPFPCSumCUDA(cudaStream_t **sts, int streamN);
+	void runUpdatePFPCOutCUDA(cudaStream_t **sts, int streamN);
+	void runSumPFPCCUDA(cudaStream_t **sts, int streamN);
 	void cpyPFPCSumCUDA(cudaStream_t **sts, int streamN);
 	void runPFPCPlastCUDA(cudaStream_t **sts, int streamN, uint32_t t);
 
 	void runSumPFSCCUDA(cudaStream_t **sts, int streamN);
-	void cpyPFSCSumGPUtoHostCUDA(cudaStream_t **sts, int streamN);
 
 	void runUpdatePFBCOutCUDA(cudaStream_t **sts, int streamN);
 	void runUpdatePFSCOutCUDA(cudaStream_t **sts, int streamN);
@@ -91,6 +90,8 @@ private:
 	int gpuIndStart;
 	int numGPUs;
 	int numGRPerGPU;
+	int numSCPerGPU;
+	int numBCPerGPU;
 
 	unsigned int updatePFPCNumGRPerB;
 	unsigned int updatePFPCNumBlocks;
@@ -100,6 +101,12 @@ private:
 
 	unsigned int updatePFBCSCNumGRPerB;
 	unsigned int updatePFBCSCNumBlocks;
+
+	unsigned int calcSCActNumSCPerB;
+	unsigned int calcSCActNumBlocks;
+
+	unsigned int calcBCActNumBCPerB;
+	unsigned int calcBCActNumBlocks;
 
 	/* ======== not used ====== */
 	unsigned int updateGRBCOutNumGRPerR;
@@ -116,10 +123,11 @@ private:
 
 	//stellate cell variables
 	//host variables
-	uint32_t *inputSumPFSCH;
-	//end host variables
-
-	//gpu related variables
+	uint8_t **apSCGPU;
+	uint32_t **apBufSCGPU;
+	float **gPFSCGPU;
+	float **threshSCGPU;
+	float **vSCGPU;
 	uint32_t **inputPFSCGPU;
 	size_t *inputPFSCGPUP;
 	uint32_t **inputSumPFSCGPU;
@@ -130,10 +138,20 @@ private:
 	//host variables
 	uint32_t *inputSumPFBCH;
 
-	//gpu related variables
+	uint8_t **apBCGPU;
+	uint32_t **apBufBCGPU;
+	float **gPFBCGPU;
+	float **gPCBCGPU;
+	float **threshBCGPU;
+	float **vBCGPU;
+
 	uint32_t **inputPFBCGPU;
 	size_t *inputPFBCGPUP;
 	uint32_t **inputSumPFBCGPU;
+
+	uint32_t **inputPCBCGPU;
+	size_t *inputPCBCGPUP;
+	uint32_t **inputSumPCBCGPU;
 	//end gpu related variables
 	//end basket cell variables
 

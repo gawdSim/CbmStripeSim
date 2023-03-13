@@ -122,7 +122,7 @@ __global__ void updatePFPCOutGPU(uint32_t *apBuf, uint32_t *delay,
 //**---------------SC Kernels-------------------**
 
 __global__ void calcSCActivity(float *vSC, float *gPFSC, float *threshSC, uint8_t *apSC,
-	uint32_t *apBufSC,  float *gInputSumPFSC, float eLeakSC, float gLeakSC, float gIncPFSC,
+	uint32_t *apBufSC, uint32_t *gInputSumPFSC, float eLeakSC, float gLeakSC, float gIncPFSC,
 	float gDecPFSC, float threshRestSC, float threshMaxSC, float threshDecaySC)
 {
 	int i = blockIdx.x*blockDim.x+threadIdx.x;
@@ -195,7 +195,7 @@ __global__ void calcPCActivity(float *vPC, float *gPFPC, float *gSCPC, float *gB
 //**---------------BC kernels-----------------**
 
 __global__ void calcBCActivity(float *vBC, float *gPFBC, float *gPCBC, float *threshBC,
-	uint8_t *apBC, uint32_t *apBufBC, float *gInputSumPFBC, float *gInputSumPCBC, 
+	uint8_t *apBC, uint32_t *apBufBC, uint32_t *gInputSumPFBC, uint32_t *gInputSumPCBC, 
 	float eLeakBC, float gLeakBC, float gIncPFBC, float gIncPCBC, float ePCtoBC,
 	float gDecPFBC, float gDecPCBC, float threshRestBC, float threshMaxBC, float threshDecayBC)
 {
@@ -442,7 +442,7 @@ void callPCActKernel(cudaStream_t &st, unsigned int numBlocks, unsigned int numP
 }
 
 void callSCActKernel(cudaStream_t &st, unsigned int numBlocks, unsigned int numSCPerBlock, 
-	float *vSC, float *gPFSC, float *threshSC, uint8_t *apSC, uint32_t *apBufSC, float *gInputSumPFSC,
+	float *vSC, float *gPFSC, float *threshSC, uint8_t *apSC, uint32_t *apBufSC, uint32_t *gInputSumPFSC,
 	float eLeakSC, float gLeakSC, float gIncPFSC, float gDecPFSC, float threshRestSC, float threshMaxSC,
 	float threshDecaySC)
 {
@@ -452,7 +452,7 @@ void callSCActKernel(cudaStream_t &st, unsigned int numBlocks, unsigned int numS
 
 void callBCActKernel(cudaStream_t &st, unsigned int numBlocks, unsigned int numBCPerBlock, 
 	float *vBC, float *gPFBC, float *gPCBC, float *threshBC, uint8_t *apBC, uint32_t *apBufBC,
-	float *gInputSumPFBC, float *gInputSumPCBC, float eLeakBC, float gLeakBC, float gIncPFBC,
+	uint32_t *gInputSumPFBC, uint32_t *gInputSumPCBC, float eLeakBC, float gLeakBC, float gIncPFBC,
 	float gIncPCBC, float ePCtoBC, float gDecPFBC, float gDecPCBC, float threshRestBC,
 	float threshMaxBC, float threshDecayBC)
 {

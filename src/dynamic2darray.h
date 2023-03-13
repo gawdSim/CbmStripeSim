@@ -10,18 +10,19 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstddef>
+#include <cstdint>
 #include <time.h>
 #include "sfmt.h"
 
 #include "file_utility.h"
 
 template<typename Type>
-Type** allocate2DArray(unsigned long long numRows, unsigned long long numCols)
+Type** allocate2DArray(uint64_t numRows, uint64_t numCols)
 {
 	Type** retArr = (Type **)calloc(numRows, sizeof(Type *));
 	retArr[0] = (Type *)calloc(numRows * numCols, sizeof(Type));
 
-	for (unsigned long long i = 1; i < numRows; i++)
+	for (size_t i = 1; i < numRows; i++)
 	{
 		retArr[i] = &(retArr[0][i * numCols]);
 	}
@@ -30,21 +31,24 @@ Type** allocate2DArray(unsigned long long numRows, unsigned long long numCols)
 }
 
 // potentially dangerous: does not check the diminesions of the new array
+// also: caller owns the memory!
 template <typename Type>
-Type** transpose2DArray(Type **result, Type **in, unsigned long long num_rows_old, unsigned long long num_cols_old)
+Type ** transpose2DArray(Type **in, uint64_t num_rows_old, uint64_t num_cols_old)
 {
-	for (unsigned long long i = 0; i < num_rows_old; i++)
+	Type ** result = allocate2DArray<Type>(num_cols_old, num_rows_old);
+	for (size_t i = 0; i < num_rows_old; i++)
 	{
-		for (unsigned long long j = 0; j < num_cols_old; j++)
+		for (size_t j = 0; j < num_cols_old; j++)
 		{
 			result[j][i] = in[i][j];
 		}
 	}
+	return result;
 }
 
 // IMPORTANT: SHUFFLES IN-PLACE
 template <typename Type>
-void shuffle_along_axis(Type **in_arr, unsigned long long num_rows, unsigned long long num_cols, unsigned int axis = 0)
+void shuffle_along_axis(Type **in_arr, uint64_t num_rows, uint64_t num_cols, uint32_t axis = 0)
 {
 	CRandomSFMT0 randGen(time(0));
 	if (axis == 0)
@@ -78,7 +82,7 @@ void shuffle_along_axis(Type **in_arr, unsigned long long num_rows, unsigned lon
 
 template <typename Type>
 void write2DArray(std::string out_file_name, Type **inArr,
-	unsigned long long num_row, unsigned long long num_col, bool append = false)
+	uint64_t num_row, uint64_t num_col, bool append = false)
 {
 	std::ios_base::openmode app_opt = (append) ? std::ios_base::app : (std::ios_base::openmode)0;
 	std::fstream out_file_buf(out_file_name.c_str(), std::ios::out | std::ios::binary | app_opt);

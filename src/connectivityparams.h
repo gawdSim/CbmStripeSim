@@ -15,9 +15,9 @@
 
 extern bool con_params_populated;
 
-extern int gr_x; 
-extern int gr_y; 
-extern int num_gr; 
+extern uint64_t gr_x; 
+extern uint64_t gr_y; 
+extern uint64_t num_gr; 
 extern int num_bc; 
 extern int num_sc; 
 extern int num_pc; 

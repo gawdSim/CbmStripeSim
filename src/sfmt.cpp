@@ -2,7 +2,7 @@
 * Authors:
 * Mutsuo Saito (Hiroshima University)
 * Makoto Matsumoto (Hiroshima University)
-* Agner Fog (Copenhagen University College of Engineering)
+* Agner Fog (Technical University of Denmark)
 * Date created:  2006
 * Last modified: 2009-02-08
 * Project:       randomc
@@ -72,7 +72,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *******************************************************************************/
 
-#include "sfmt.h"  // Class definition and other declarations
+#include "sfmt.h"                      // Class definition and other declarations
 
 
 void CRandomSFMT::RandomInit(int seed) {

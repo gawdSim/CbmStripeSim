@@ -2,7 +2,7 @@
 * Authors:
 * Mutsuo Saito (Hiroshima University)
 * Makoto Matsumoto (Hiroshima University)
-* Agner Fog (Copenhagen University College of Engineering)
+* Agner Fog (Technical University of Denmark)
 * Date created:  2006
 * Last modified: 2009-02-08
 * Project:       randomc
@@ -100,7 +100,7 @@ Copyright (c) 2008 by Agner Fog.
 All rights reserved.
 Redistribution and use in source and binary forms, with or without 
 modification, are permitted provided that the following conditions are met:
-    > Redistributions of source code must retain the above copyright notice,
+    > Redistributions of source code must retain the above copyright notice, 
       this list of conditions and the following disclaimer.
     > Redistributions in binary form must reproduce the above copyright notice, 
       this list of conditions and the following disclaimer in the documentation
@@ -212,7 +212,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Class for SFMT generator with or without Mother-Of-All generator
 class CRandomSFMT {                              // Encapsulate random number generator
 public:
-   CRandomSFMT(int seed, int IncludeMother = 1) {// Constructor
+   CRandomSFMT(int seed, int IncludeMother = 0) {// Constructor
       UseMother = IncludeMother; 
       LastInterval = 0;
       RandomInit(seed);}

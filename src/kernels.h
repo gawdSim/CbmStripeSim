@@ -9,6 +9,7 @@
 #define KERNELS_H_
 
 #include <cuda.h>
+#include <curand_kernel.h>
 #include <cuda_runtime.h>
 #include <iostream>
 
@@ -16,11 +17,17 @@
 
 void callTestKernel(cudaStream_t &st, float *a, float *b, float *c);
 
-void callGRActKernel(cudaStream_t &st, unsigned int numBlocks, unsigned int numGRPerBlock,
-		float *vGPU, float *gKCaGPU, float *gLeakGRPGU, float *gNMDAGRGPU, float*gNMDAIncGRGPU,
-		float *threshGPU, uint32_t *apBufGPU, uint8_t *apOutGRGPU, uint32_t *apGRGPU,
-		int *apMFtoGRGPU, float *gESumGPU, float *gISumGPU, float eLeak, float eGOIn,
-		float gAMPAInc, float threshBase, float threshMax, float threshDecay);
+template <typename randState, typename blockDims, typename threadDims>
+void callCurandSetupKernel(cudaStream_t &st, randState *state, uint32_t seed,
+						   blockDims &block_dim, threadDims &thread_dim);
+
+template <typename randState>
+void callCurandGenerateUniformKernel(cudaStream_t &st, randState *state, uint32_t block_dim,
+	  uint32_t thread_dim, float *randoms, size_t rand_offset);
+
+void callGRActKernel(cudaStream_t &st, uint32_t numBlocks, uint32_t numGRPerBlock,
+    float *threshGPU, uint8_t *apGPU, float *randoms, float *gr_templateGPU, size_t gr_template_pitchGPU,
+    size_t num_gr_old, float threshBase, float threshMax, float threshInc);
 
 void callPCActKernel(cudaStream_t &st, unsigned int numBlocks, unsigned int numPCPerBlock,
 	float *vPC, float *gPFPC, float *gSCPC, float *gBCPC, float *threshPC, uint8_t *apPC, uint32_t *apBufPC,

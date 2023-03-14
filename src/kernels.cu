@@ -19,6 +19,23 @@ __global__ void testKernel(float *a, float *b, float *c)
 
 //**---------------random kernels-------------**
 
+template <typename randState>
+__global__ void curandSetupKernel(randState *state, uint32_t seed)
+{
+	int id = threadIdx.x + blockIdx.x * blockDim.x;
+	/* every thread gets same seed, different sequence number,
+	   no offset */
+	curand_init(seed, id, 0, &state[id]);
+}
+
+template <typename randState>
+__global__ void curandGenerateUniformsKernel(randState *state, float *randoms, uint32_t rand_offset)
+{
+	int i = blockIdx.x * blockDim.x + threadIdx.x;
+	curandStateMRG32k3a localState = state[i];
+	randoms[i + rand_offset] = curand_uniform(&localState);
+}
+
 // NOTE: only call this once per thread!!! else curand_uniform
 //       will spit out the same numbers!
 __device__ float getRandFloat(uint64_t seed, int tid, uint32_t *threadCallCount)
@@ -29,54 +46,23 @@ __device__ float getRandFloat(uint64_t seed, int tid, uint32_t *threadCallCount)
 	return curand_uniform(&d_state);
 }
 
+//**---------------end random kernels---------**
+
 //**---------------end random kernels-------------**
 
 //**-----------------GR Kernels------------------**
 
-__global__ void calcActivityGRGPU(float *vm, float *gKCa, float *gLeak, float *gNMDA, float *gNMDAInc,
-	float *thresh, uint32_t *apBuf, uint8_t *apOutGR, uint32_t *apGR, int *apMFtoGR,
-	float *gESum, float *gISum, float eLeak, float eGOIn, float gAMPAInc, 
-	float threshBase, float threshMax, float threshDecay)
+__global__ void	calcActivityGRGPU(float *threshGPU, uint8_t *apGPU, float *randoms, float *gr_templateGPU,
+      size_t gr_template_pitchGPU, size_t num_gr_old, float threshBase, float threshMax,
+      float threshInc)
 {
-	float tempThresh;
-	unsigned int tempAP;
-
 	int i = blockIdx.x * blockDim.x + threadIdx.x;
+  // CHECK THIS
+	//float *gr_template_row = (float *)((char *)gr_templateGPU + blockIdx.y * gr_template_pitchGPU);
+	threshGPU[i] += (threshMax - threshGPU[i]) * threshInc;
+	apGPU[i] = randoms[i] < (/*gr_template_row[i % num_gr_old]*/ 0.1 * threshGPU[i]);
+	threshGPU[i] = apGPU[i] * threshBase + (apGPU[i] - 1) * threshGPU[i];
 
-	float tempGKCa = gKCa[i];
-	float tempV = vm[i];
-
-	gLeak[i] = 0.0000001021370733 * tempV * tempV * tempV * tempV
-	   		 + 0.00001636462 * tempV * tempV * tempV
-			 + 0.00113971219 * tempV * tempV
-			 + 0.038772 * tempV
-			 + 0.6234929;
-	
-	
-	gNMDAInc[i] = 0.00000011969 * tempV * tempV * tempV
-	   			+ 0.000089369 * tempV * tempV
-				+ 0.0151 * tempV
-				+ 0.7713;
-
-	gNMDA[i] = gNMDAInc[i] * gAMPAInc * apMFtoGR[i] + gNMDA[i] * 0.9672;
-
-
-	tempV = tempV + gLeak[i] * (eLeak - tempV) - gESum[i] * tempV 
-	   	  - gNMDA[i] * tempV + gISum[i] * (eGOIn - tempV); 
-
-	if (tempV > threshMax) tempV = threshMax;
-
-	tempThresh = thresh[i] + (threshBase - thresh[i]) * threshDecay;
-	tempAP 	   = tempV > tempThresh;
-	thresh[i]  = tempAP * threshMax + (!tempAP) * tempThresh;
-
-	tempGKCa = tempGKCa * 0.9999f; 
-	gKCa[i] = tempAP * (tempGKCa + 0.000f) + (!tempAP) * tempGKCa;
-
-	apBuf[i]   = (apBuf[i] << 1) | tempAP;
-	apOutGR[i] = tempAP;
-	apGR[i]    = tempAP;
-	vm[i]      = tempV;
 }
 
 __global__ void updateGRHistory(uint32_t *apBuf, uint64_t *apHist, uint32_t bufTestMask)
@@ -418,16 +404,26 @@ void callTestKernel(cudaStream_t &st, float *a, float *b, float *c)
 	testKernel<<<1, 128>>>(a, b, c);
 }
 
-// TODO: update as a gamma generator
-void callGRActKernel(cudaStream_t &st, unsigned int numBlocks, unsigned int numGRPerBlock,
-		float *vGPU, float *gKCaGPU, float *gLeakGPU, float *gNMDAGRGPU, float *gNMDAIncGRGPU,
-		float *threshGPU, uint32_t *apBufGPU, uint8_t *apOutGRGPU, uint32_t *apGRGPU,
-		int *apMFtoGRGPU, float *gESumGPU, float *gISumGPU, float eLeak,
-		float eGOIn, float gAMPAInc, float threshBase, float threshMax, float threshDecay)
+template <typename randState, typename blockDims, typename threadDims>
+void callCurandSetupKernel(cudaStream_t &st, randState *state, uint32_t seed,
+						   blockDims &block_dim, threadDims &thread_dim)
 {
-	calcActivityGRGPU<<<numBlocks, numGRPerBlock, 0, st>>>(vGPU, gKCaGPU, gLeakGPU, gNMDAGRGPU,
-		  gNMDAIncGRGPU, threshGPU, apBufGPU, apOutGRGPU, apGRGPU, apMFtoGRGPU, gESumGPU, 
-		  gISumGPU, eLeak, eGOIn, gAMPAInc, threshBase, threshMax, threshDecay);
+	curandSetupKernel<randState><<<block_dim, thread_dim, 0, st>>>(state, seed);
+}
+
+template <typename randState>
+void callCurandGenerateUniformKernel(cudaStream_t &st, randState *state, uint32_t block_dim,
+	  uint32_t thread_dim, float *randoms, size_t rand_offset)
+{
+	curandGenerateUniformsKernel<randState><<<block_dim, thread_dim, 0, st>>>(state, randoms, rand_offset);
+}
+
+void callGRActKernel(cudaStream_t &st, uint32_t numBlocks, uint32_t numGRPerBlock,
+    float *threshGPU, uint8_t *apGPU, float *randoms, float *gr_templateGPU, size_t gr_template_pitchGPU,
+    size_t num_gr_old, float threshBase, float threshMax, float threshInc)
+{
+	calcActivityGRGPU<<<numBlocks, numGRPerBlock, 0, st>>>(threshGPU, apGPU, randoms, gr_templateGPU,
+      gr_template_pitchGPU, num_gr_old, threshBase, threshMax, threshInc);
 }
 
 void callPCActKernel(cudaStream_t &st, unsigned int numBlocks, unsigned int numPCPerBlock,
@@ -567,6 +563,12 @@ void callUpdatePFPCPlasticityIOKernel(cudaStream_t &st, unsigned int numBlocks, 
 //**---------------end kernel calls------------**
 
 // template initializations
+
+template void callCurandSetupKernel<curandStateMRG32k3a, dim3, dim3>
+(cudaStream_t &st, curandStateMRG32k3a *state, uint32_t seed, dim3 &block_dim, dim3 &thread_dim);
+
+template void callCurandGenerateUniformKernel<curandStateMRG32k3a>(cudaStream_t &st, curandStateMRG32k3a *state,
+		uint32_t block_dim, uint32_t thread_dim, float *randoms, size_t rand_offset);
 
 template void callSumKernel<float, true, false>
 		(cudaStream_t &st, float *inPFGPU, size_t inPFGPUP, float *outPFSumGPU, size_t outPFSumGPUP,

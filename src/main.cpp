@@ -47,16 +47,16 @@ int main(int argc, char **argv)
 	LOG_INFO("gr cells initialized.");
 	std::string out_rf_name, out_pf_name, out_template_indices_name;
 	double trial_start, trial_end;
-	//omp_set_num_threads(1); /* for 4 gpus, 8 is the sweet spot. Unsure for 2. */
+	omp_set_num_threads(1); /* for 4 gpus, 8 is the sweet spot. Unsure for 2. */
 	for (uint32_t trial = 0; trial < NUM_TRIALS; trial++)
 	{
 		LOG_INFO("Trial number: %d", trial + 1);
 		trial_start = omp_get_wtime();
-		for (uint32_t ts = 0; ts < NUM_TS; ts++)
+		for (size_t ts = 0; ts < NUM_TS; ts++)
 		{
-			gr_cells.calcGRPoissActivitySample(ts);
+			gr_cells.calcGRPoissActivity(ts);
 			//gr_cells.fill_rasters(ts);
-			gr_cells.fill_psths_sample(ts);
+			//gr_cells.fill_psths_sample(ts);
 		}
 		trial_end = omp_get_wtime();
 		LOG_INFO("Trial %d took %0.2fs", trial + 1, trial_end - trial_start);

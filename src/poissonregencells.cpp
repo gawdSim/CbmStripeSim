@@ -178,42 +178,6 @@ void PoissonRegenCells::init_templates_from_psth_file(std::fstream &input_psth_f
 	gr_templates_t_h = transpose2DArray(gr_templates_h, num_gr_old, 2000);
 	LOG_INFO("finished transposing templates.");
 
-	//LOG_INFO("Generating template indices");
-	//size_t expansion_counter = 0;
-	//for (size_t i = 0; i < num_gr; i++)
-	//{
-	//	template_indices[i] = expansion_counter;
-	//	if (i % expansion_factor == 0 && i > 0)
-	//	{
-	//		expansion_counter++;
-	//	}
-	//}
-	//LOG_INFO("finished generating template indices.");
-
-	//LOG_INFO("shuffling...");
-	//fisher_yates_shuffle<size_t>(template_indices, num_gr);
-	//LOG_INFO("finished shuffling...");
-
-	//LOG_INFO("generating random sample of non-unique template gr indices for psth saving...");
-	//// NOTE: the template indices are not guaranteed to be unique, as template_indices
-	//// contains expansion_factor multiples of each template id
-	//size_t curr_sample_index = 0;
-	//CRandomSFMT0 localRNG(time(0));
-	//uint8_t *chosen = (uint8_t *)calloc(num_gr, sizeof(uint8_t));
-	//while (curr_sample_index < psth_sample_size)
-	//{
-	//	size_t test_index = localRNG.IRandom(0, num_gr-1);
-	//	if (!chosen[test_index])
-	//	{
-	//		sample_template_indices[curr_sample_index] = template_indices[test_index];
-	//		sample_indices[curr_sample_index] = test_index;
-	//		curr_sample_index++;
-	//		chosen[test_index] = 1;
-	//	}
-	//}
-	//free(chosen);
-	//LOG_INFO("finished generation of random sample");
-
 	delete2DArray(input_psths);
 	delete2DArray(input_psths_t);
 	free(firing_categories);

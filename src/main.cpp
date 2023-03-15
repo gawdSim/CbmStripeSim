@@ -64,11 +64,9 @@ int main(int argc, char **argv)
 		//LOG_INFO("saving granule rasters to file..");
 		//gr_cells.save_rasters(out_rf_name);
 	}
-	out_template_indices_name = std::string(DATA_OUT_DIR) + std::string(OUT_FILE_BASENAME) + "_GR_TEMPLATE_INDICES" + std::string(BIN_EXT);
-	gr_cells.save_sample_template_indices(out_template_indices_name);
 	out_pf_name = std::string(DATA_OUT_DIR) + std::string(OUT_FILE_BASENAME) + "_GR_PSTH" + std::string(BIN_EXT);
 	LOG_INFO("saving granule psths to file..");
-	gr_cells.save_psths_sample(out_pf_name);
+	gr_cells.save_psths(out_pf_name);
 
 	LOG_INFO("simulation finished. exiting..");
 	return 0;

@@ -56,12 +56,13 @@ __global__ void	calcActivityGRGPU(float *threshGPU, uint8_t *apGPU, float *rando
       size_t gr_template_pitchGPU, size_t num_gr_old, float threshBase, float threshMax,
       float threshInc)
 {
-	int i = blockIdx.x * blockDim.x + threadIdx.x;
+	int tix = blockIdx.x * blockDim.x + threadIdx.x;
+	int tiy = blockIdx.y * blockDim.y + threadIdx.y;
   // CHECK THIS
-	//float *gr_template_row = (float *)((char *)gr_templateGPU + blockIdx.y * gr_template_pitchGPU);
-	threshGPU[i] += (threshMax - threshGPU[i]) * threshInc;
-	apGPU[i] = randoms[i] < (/*gr_template_row[i % num_gr_old]*/ 0.1 * threshGPU[i]);
-	threshGPU[i] = apGPU[i] * threshBase + (apGPU[i] - 1) * threshGPU[i];
+	float *gr_template_row = (float *)((char *)gr_templateGPU + tiy * gr_template_pitchGPU);
+	threshGPU[tix] += (threshMax - threshGPU[tix]) * threshInc;
+	apGPU[tix] = randoms[tix] < (gr_template_row[tix % num_gr_old] * threshGPU[tix]);
+	threshGPU[tix] = apGPU[tix] * threshBase + (apGPU[tix] - 1) * threshGPU[tix];
 
 }
 

@@ -86,8 +86,10 @@ private:
   float **gr_templates_t_d;
   size_t *gr_templates_t_pitch;
 
-	float **threshs;
-	uint8_t **aps;
+	float *threshs_h;
+	uint8_t *aps_h;
+	float **threshs_d;
+	uint8_t **aps_d;
 
 	uint32_t **apBufs;
 	uint64_t **apHists;

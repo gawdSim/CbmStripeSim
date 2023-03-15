@@ -36,10 +36,14 @@ PoissonRegenCells::PoissonRegenCells(int randSeed, std::fstream &psth_file_buf)
 	expansion_factor = 128; // by what factor are we expanding the granule cell number?
   num_gr_old = num_gr / expansion_factor;
 
+	threshs_h = (float *)calloc(num_gr, sizeof(float));
+	aps_h     = (uint8_t *)calloc(num_gr, sizeof(uint8_t));
+
+  for (size_t i = 0; i < num_gr; i++) threshs_h[i]  = threshMax;
+
 	//psths = allocate2DArray<uint8_t>(2000, psth_sample_size);
 	//rasters = allocate2DArray<uint8_t>(2000, num_gr); // hardcoded, 2000 ts by 1000 trials by num_gr grs
 	gr_templates_h = allocate2DArray<float>(num_gr / expansion_factor, 2000); // for now, only have firing rates from trials of 2000
-                                                                          //
 	init_templates_from_psth_file(psth_file_buf);
   initGRCUDA();
 }
@@ -65,6 +69,8 @@ PoissonRegenCells::~PoissonRegenCells()
 
 	//delete2DArray(psths);
 	//delete2DArray(rasters);
+  free(threshs_h);
+  free(aps_h);
 	delete2DArray(gr_templates_h);
 	delete2DArray(gr_templates_t_h);
 
@@ -72,15 +78,15 @@ PoissonRegenCells::~PoissonRegenCells()
 	{
 		cudaSetDevice(i + gpuIndStart);
     cudaFree(gr_templates_t_d[i]);
-    cudaFree(threshs[i]);
-    cudaFree(aps[i]);
+    cudaFree(threshs_d[i]);
+    cudaFree(aps_d[i]);
 		cudaDeviceSynchronize();
 	}
   free(gr_templates_t_d);
   free(gr_templates_t_pitch);
 
-  free(threshs);
-  free(aps);
+  free(threshs_d);
+  free(aps_d);
 }
 
 // Soon to be deprecated: was for loading in pre-computed smoothed-fr
@@ -197,19 +203,39 @@ void PoissonRegenCells::initGRCUDA()
   gr_templates_t_d     = (float **)calloc(numGPUs, sizeof(float *));
   gr_templates_t_pitch = (size_t *)calloc(numGPUs, sizeof(size_t));
 
-	threshs = (float **)calloc(numGPUs, sizeof(float *));
-	aps     = (uint8_t **)calloc(numGPUs, sizeof(uint8_t *));
+	threshs_d = (float **)calloc(numGPUs, sizeof(float *));
+	aps_d     = (uint8_t **)calloc(numGPUs, sizeof(uint8_t *));
 
+	LOG_INFO("Allocating device memory...");
 	for (uint32_t i = 0; i < numGPUs; i++)
 	{
 		cudaSetDevice(i + gpuIndStart);
-		cudaMallocPitch((void **)&gr_templates_t_d[i], (size_t *)&gr_templates_t_pitch[i],
-			2000 * sizeof(float), num_gr_old);
-    cudaMalloc((void **)&threshs[i], num_gr * sizeof(float));
-    cudaMalloc((void **)&aps[i], num_gr * sizeof(uint8_t));
+		cudaMallocPitch(&gr_templates_t_d[i], &gr_templates_t_pitch[i],
+			num_gr_old * sizeof(float), 2000);
+	  LOG_INFO("gr templates malloc pitch error: %s", cudaGetErrorString(cudaGetLastError()));
+    cudaMalloc(&threshs_d[i], num_gr * sizeof(float));
+	  LOG_INFO("threshs malloc error: %s", cudaGetErrorString(cudaGetLastError()));
+    cudaMalloc(&aps_d[i], num_gr * sizeof(uint8_t));
+	  LOG_INFO("aps malloc error: %s", cudaGetErrorString(cudaGetLastError()));
 		cudaDeviceSynchronize();
 	}
-  //TODO: cudaMemcpy sss
+	LOG_INFO("alloc final error: %s", cudaGetErrorString(cudaGetLastError()));
+	LOG_INFO("Finished allocating device memory.");
+
+
+	LOG_INFO("Copying host to device memory...");
+  for (uint32_t i = 0; i < numGPUs; i++)
+  {
+    cudaMemcpy2D(gr_templates_t_d[i], gr_templates_t_pitch[i], gr_templates_t_h,
+      num_gr_old * sizeof(float), num_gr_old * sizeof(float), 2000, cudaMemcpyHostToDevice);
+	  LOG_INFO("gr templates memcpy2D error: %s", cudaGetErrorString(cudaGetLastError()));
+		cudaMemcpy(threshs_d[i], threshs_h, num_gr * sizeof(float), cudaMemcpyHostToDevice);
+	  LOG_INFO("threshs memcpy error: %s", cudaGetErrorString(cudaGetLastError()));
+		cudaMemcpy(aps_d[i], aps_h, num_gr * sizeof(uint8_t), cudaMemcpyHostToDevice);
+	  LOG_INFO("aps memcpy error: %s", cudaGetErrorString(cudaGetLastError()));
+  }
+	LOG_INFO("memcpy final error: %s", cudaGetErrorString(cudaGetLastError()));
+	LOG_INFO("Finished copying host to device memory.");
 }
 
 void PoissonRegenCells::initCUDAStreams()
@@ -308,7 +334,7 @@ void PoissonRegenCells::calcGRPoissActivity(size_t ts)
 	    	grActRandNums[i], j);
     }
     callGRActKernel(streams[i][1], calcGRActNumBlocks, calcGRActNumGRPerB,
-      threshs[i], aps[i], grActRandNums[i], gr_templates_t_d[i], gr_templates_t_pitch[i], num_gr_old,
+      threshs_d[i], aps_d[i], grActRandNums[i], gr_templates_t_d[i], gr_templates_t_pitch[i], num_gr_old,
       threshBase, threshMax, threshInc);
   }
 }
@@ -336,7 +362,7 @@ void PoissonRegenCells::save_psths(std::string out_file)
 	write2DArray<uint8_t>(out_file, psths, 2000, num_gr);
 }
 
-const uint8_t *PoissonRegenCells::getGRAPs() { return (const uint8_t *)aps; }
+const uint8_t *PoissonRegenCells::getGRAPs() { return (const uint8_t *)aps_h; }
 
 const float **PoissonRegenCells::getGRFRs() { return (const float **)gr_fr; }
 

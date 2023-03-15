@@ -36,17 +36,11 @@ PoissonRegenCells::PoissonRegenCells(int randSeed, std::fstream &psth_file_buf)
 	expansion_factor = 128; // by what factor are we expanding the granule cell number?
   num_gr_old = num_gr / expansion_factor;
 
-	psth_sample_size = num_gr / expansion_factor;
-	sample_template_indices = (size_t *)calloc(psth_sample_size, sizeof(size_t));
-	template_indices = (size_t *)calloc(num_gr, sizeof(size_t));
-
-	sample_indices = (size_t *)calloc(psth_sample_size, sizeof(size_t));
-
-	psths = allocate2DArray<uint8_t>(2000, psth_sample_size);
+	//psths = allocate2DArray<uint8_t>(2000, psth_sample_size);
 	//rasters = allocate2DArray<uint8_t>(2000, num_gr); // hardcoded, 2000 ts by 1000 trials by num_gr grs
 	gr_templates_h = allocate2DArray<float>(num_gr / expansion_factor, 2000); // for now, only have firing rates from trials of 2000
                                                                           //
-	//init_templates_from_psth_file(psth_file_buf);
+	init_templates_from_psth_file(psth_file_buf);
   initGRCUDA();
 }
 
@@ -68,17 +62,25 @@ PoissonRegenCells::~PoissonRegenCells()
 	delete[] grActRandNums;
 
 	delete[] randGens;
-	free(template_indices);
 
-	free(sample_indices);
-
-	delete2DArray(psths);
+	//delete2DArray(psths);
 	//delete2DArray(rasters);
 	delete2DArray(gr_templates_h);
 	delete2DArray(gr_templates_t_h);
 
-	//free(threshs);
-	//free(aps);
+	for (uint32_t i = 0; i < numGPUs; i++)
+	{
+		cudaSetDevice(i + gpuIndStart);
+    cudaFree(gr_templates_t_d[i]);
+    cudaFree(threshs[i]);
+    cudaFree(aps[i]);
+		cudaDeviceSynchronize();
+	}
+  free(gr_templates_t_d);
+  free(gr_templates_t_pitch);
+
+  free(threshs);
+  free(aps);
 }
 
 // Soon to be deprecated: was for loading in pre-computed smoothed-fr
@@ -105,7 +107,6 @@ void PoissonRegenCells::init_templates_from_psth_file(std::fstream &input_psth_f
 	 * 5. profit
 	 */
 
-	//TODO: debug :-) 
 	enum {ZERO_FIRERS, LOW_FIRERS, HIGH_FIRERS};
 	uint32_t num_fire_categories[3] = {0};
 	// expect input data comes from 1000 trials, 2000 ts a piece.
@@ -348,22 +349,6 @@ void PoissonRegenCells::calcGRPoissActivity(size_t ts)
   }
 }
 
-//void PoissonRegenCells::calcGRPoissActivitySample(uint32_t ts)
-//{
-//	for (uint32_t i = 0; i < psth_sample_size; i++)
-//	{
-//		float temp_thresh = threshs[sample_indices[i]];
-//		uint8_t temp_ap = aps[sample_indices[i]];
-//    size_t temp_sample_id = sample_template_indices[i];
-//		temp_thresh += (threshMax - temp_thresh) * threshInc;
-//		temp_ap = randGens[0]->Random() < (gr_templates_t_h[ts][sample_template_indices[i]] * temp_thresh);
-//		temp_thresh = temp_ap * threshBase + (temp_ap - 1) * temp_thresh;
-//
-//		threshs[sample_indices[i]] = temp_thresh;
-//		aps[sample_indices[i]] = temp_ap;
-//	}
-//}
-
 //void PoissonRegenCells::fill_rasters(uint32_t ts)
 //{
 //	memcpy(rasters[ts], aps, num_gr * sizeof(uint8_t));
@@ -377,40 +362,6 @@ void PoissonRegenCells::calcGRPoissActivity(size_t ts)
 //	}
 //}
 
-//void PoissonRegenCells::fill_psths_sample(size_t ts)
-//{
-//	for (size_t i = 0; i < psth_sample_size; i++)
-//	{
-//		psths[ts][i] += aps[sample_indices[i]];
-//	}
-//}
-
-void PoissonRegenCells::save_sample_template_indices(std::string out_file)
-{
-	std::fstream out_file_buf(out_file.c_str(), std::ios::out | std::ios::binary);
-
-	if (!out_file_buf.is_open())
-	{
-		fprintf(stderr, "[ERROR]: Couldn't open '%s' for writing. Exiting...\n", out_file.c_str());
-		exit(-1);
-	}
-	rawBytesRW((char *)sample_template_indices, psth_sample_size  * sizeof(size_t), false, out_file_buf);
-	out_file_buf.close();
-}
-
-void PoissonRegenCells::save_template_indices(std::string out_file)
-{
-	std::fstream out_file_buf(out_file.c_str(), std::ios::out | std::ios::binary);
-
-	if (!out_file_buf.is_open())
-	{
-		fprintf(stderr, "[ERROR]: Couldn't open '%s' for writing. Exiting...\n", out_file.c_str());
-		exit(-1);
-	}
-	rawBytesRW((char *)template_indices, num_gr  * sizeof(size_t), false, out_file_buf);
-	out_file_buf.close();
-}
-
 //void PoissonRegenCells::save_rasters(std::string out_file)
 //{
 //	write2DArray<uint8_t>(out_file, rasters, 2000, num_gr);
@@ -419,11 +370,6 @@ void PoissonRegenCells::save_template_indices(std::string out_file)
 void PoissonRegenCells::save_psths(std::string out_file)
 {
 	write2DArray<uint8_t>(out_file, psths, 2000, num_gr);
-}
-
-void PoissonRegenCells::save_psths_sample(std::string out_file)
-{
-	write2DArray<uint8_t>(out_file, psths, 2000, psth_sample_size);
 }
 
 const uint8_t *PoissonRegenCells::getGRAPs() { return (const uint8_t *)aps; }

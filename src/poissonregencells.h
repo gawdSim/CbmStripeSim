@@ -31,15 +31,10 @@ public:
 	~PoissonRegenCells();
 
   void calcGRPoissActivity(size_t ts);
-	void calcGRPoissActivitySample(uint32_t ts);
 	//void fill_rasters(uint32_t ts);
 	void fill_psths(size_t ts);
-	void fill_psths_sample(size_t ts);
-	void save_sample_template_indices(std::string out_file);
-	void save_template_indices(std::string out_file);
 	//void save_rasters(std::string out_file);
 	void save_psths(std::string out_file);
-	void save_psths_sample(std::string out_file);
 	const uint8_t *getGRAPs();
 	const float **getGRFRs();
 	uint32_t **getApBufGR();
@@ -82,16 +77,6 @@ private:
 	uint32_t expansion_factor;
   size_t num_gr_old;
 
-	uint32_t psth_sample_size;
-	// template indices indicate from which *input* cell template do we generate spikes
-	// from. Will have dimensions num_gr / expansion_factor
-	size_t *sample_template_indices;
-	size_t *template_indices;
-
-	// watch out: these are indices of expanded number of gr cells, so num_gr
-	// (which is expanded by expansion_factor from inputs)
-	size_t *sample_indices;
-	
 	uint8_t **psths;
 	//uint8_t **rasters;
 	float **gr_fr;
@@ -106,7 +91,6 @@ private:
 
 	uint32_t **apBufs;
 	uint64_t **apHists;
-	int spikeTimer = 0;
 };
 
 #endif /* POISSONREGENCELLS_H_ */

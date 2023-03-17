@@ -11,7 +11,7 @@
 #include "poissonregencells.h"
 
 #define NUM_TRIALS 1000
-#define NUM_TS 2000
+#define NUM_TS 2800
 
 #ifdef DEBUG
 #define DATA_OUT_DIR "../../data/outputs/"
@@ -19,7 +19,7 @@
 #define DATA_OUT_DIR "../data/outputs/"
 #endif
 
-#define OUT_FILE_BASENAME "template_test"
+#define OUT_FILE_BASENAME "template_test_2_unsmooth_fr"
 #define BIN_EXT ".bin"
 
 int main(int argc, char **argv)
@@ -47,7 +47,7 @@ int main(int argc, char **argv)
 	LOG_INFO("gr cells initialized.");
 	std::string out_rf_name, out_pf_name, out_template_indices_name;
 	double trial_start, trial_end;
-	omp_set_num_threads(1); /* for 4 gpus, 8 is the sweet spot. Unsure for 2. */
+	omp_set_num_threads(8); /* for 4 gpus, 8 is the sweet spot. Unsure for 2. */
 	for (uint32_t trial = 0; trial < NUM_TRIALS; trial++)
 	{
 		LOG_INFO("Trial number: %d", trial + 1);
@@ -56,7 +56,7 @@ int main(int argc, char **argv)
 		{
 			gr_cells.calcGRPoissActivity(ts);
 			//gr_cells.fill_rasters(ts);
-			//gr_cells.fill_psths_sample(ts);
+			gr_cells.fill_psths(ts);
 		}
 		trial_end = omp_get_wtime();
 		LOG_INFO("Trial %d took %0.2fs", trial + 1, trial_end - trial_start);

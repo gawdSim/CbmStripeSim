@@ -9,9 +9,9 @@
 
 bool con_params_populated = false;
 
-uint64_t gr_x                    = 16 * 2048; 
-uint64_t gr_y                    = 8 * 512; 
-uint64_t num_gr                  = 128 * 1048576; 
+uint64_t gr_x                    = 0;//16 * 2048; 
+uint64_t gr_y                    = 0;//8 * 512; 
+uint64_t num_gr                  = 1 * 1048576;//128 * 1048576; 
 int go_x                         = 0; 
 int go_y                         = 0; 
 int num_go                       = 0; 

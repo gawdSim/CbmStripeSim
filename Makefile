@@ -44,14 +44,14 @@ RELEASE_OBJS := $(CUDA_RELEASE_OBJS) $(NON_CUDA_RELEASE_OBJS)
 DEBUG_OBJS   := $(CUDA_DEBUG_OBJS) $(NON_CUDA_DEBUG_OBJS)
 
 NVCC       := nvcc
-NVCC_FLAGS := -arch=native -Xcompiler -fPIC -O3
+NVCC_FLAGS := -arch=native -Xcompiler -fPIC -O2
 
 CPP             := g++-11
-CPP_FLAGS       := -m64 -pipe -std=c++14 -fopenmp -O3 -fPIC
+CPP_FLAGS       := -m64 -pipe -std=c++14 -fopenmp -O2  -fPIC
 CPP_DEBUG_FLAGS := -m64 -pipe -std=c++14 -fopenmp -g -D DEBUG -fPIC 
 
 LD             := g++-11
-LD_FLAGS       := -m64 -fopenmp -O3
+LD_FLAGS       := -m64 -fopenmp -O2
 LD_DEBUG_FLAGS := -m64 -fopenmp -g
 
 CHK_DIR_EXISTS   := test -d

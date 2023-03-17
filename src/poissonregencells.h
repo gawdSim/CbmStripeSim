@@ -54,13 +54,14 @@ private:
 	curandStateMRG32k3a **mrg32k3aRNGs; // device randGens
 
 	uint32_t gpuIndStart = 0;
-  uint64_t numGPUs = 1;
+  uint64_t numGPUs = 2;
   cudaStream_t **streams;
 
 	float **grActRandNums;
 
 	unsigned int nThreads;
 
+  uint64_t numGROldPerGPU;
   uint64_t numGRPerGPU;
   uint32_t calcGRActNumBlocks;
   uint32_t calcGRActNumGRPerB;

@@ -53,7 +53,7 @@ __device__ float getRandFloat(uint64_t seed, int tid, uint32_t *threadCallCount)
 //**-----------------GR Kernels------------------**
 
 __global__ void	calcActivityGRGPU(float *threshGPU, uint8_t *apGPU, float *randoms, float *gr_templateGPU,
-      size_t gr_template_pitchGPU, size_t num_gr_old, float threshBase, float threshMax,
+      size_t gr_template_pitchGPU, size_t num_gr_old, float s_per_ts, float threshBase, float threshMax,
       float threshInc)
 {
 	int tix = blockIdx.x * blockDim.x + threadIdx.x;
@@ -61,7 +61,7 @@ __global__ void	calcActivityGRGPU(float *threshGPU, uint8_t *apGPU, float *rando
   // CHECK THIS
 	float *gr_template_row = (float *)((char *)gr_templateGPU + tiy * gr_template_pitchGPU);
 	threshGPU[tix] += (threshMax - threshGPU[tix]) * threshInc;
-	apGPU[tix] = randoms[tix] < (gr_template_row[tix % num_gr_old] * threshGPU[tix]);
+	apGPU[tix] = randoms[tix] < (gr_template_row[tix % num_gr_old] * s_per_ts * threshGPU[tix]);
 	threshGPU[tix] = apGPU[tix] * threshBase + (apGPU[tix] - 1) * threshGPU[tix];
 
 }
@@ -421,10 +421,10 @@ void callCurandGenerateUniformKernel(cudaStream_t &st, randState *state, uint32_
 
 void callGRActKernel(cudaStream_t &st, uint32_t numBlocks, uint32_t numGRPerBlock,
     float *threshGPU, uint8_t *apGPU, float *randoms, float *gr_templateGPU, size_t gr_template_pitchGPU,
-    size_t num_gr_old, float threshBase, float threshMax, float threshInc)
+    size_t num_gr_old, float s_per_ts, float threshBase, float threshMax, float threshInc)
 {
 	calcActivityGRGPU<<<numBlocks, numGRPerBlock, 0, st>>>(threshGPU, apGPU, randoms, gr_templateGPU,
-      gr_template_pitchGPU, num_gr_old, threshBase, threshMax, threshInc);
+      gr_template_pitchGPU, num_gr_old, s_per_ts, threshBase, threshMax, threshInc);
 }
 
 void callPCActKernel(cudaStream_t &st, unsigned int numBlocks, unsigned int numPCPerBlock,

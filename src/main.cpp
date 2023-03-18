@@ -19,7 +19,7 @@
 #define DATA_OUT_DIR "../data/outputs/"
 #endif
 
-#define OUT_FILE_BASENAME "template_test_2_unsmooth_fr"
+#define OUT_FILE_BASENAME "please_just_work"
 #define BIN_EXT ".bin"
 
 int main(int argc, char **argv)

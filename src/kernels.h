@@ -26,8 +26,9 @@ void callCurandGenerateUniformKernel(cudaStream_t &st, randState *state, uint32_
 	  uint32_t thread_dim, float *randoms, size_t rand_offset);
 
 void callGRActKernel(cudaStream_t &st, uint32_t numBlocks, uint32_t numGRPerBlock,
-    float *threshGPU, uint8_t *apGPU, float *randoms, float *gr_templateGPU, size_t gr_template_pitchGPU,
-    size_t num_gr_old, size_t ts, float s_per_ts, float threshBase, float threshMax, float threshInc);
+    float *threshGPU, uint8_t *apGPU, uint32_t *apBufGPU, float *randoms, float *gr_templateGPU,
+    size_t gr_template_pitchGPU, size_t num_gr_old, size_t ts, float s_per_ts, float threshBase,
+    float threshMax, float threshInc);
 
 void callPCActKernel(cudaStream_t &st, unsigned int numBlocks, unsigned int numPCPerBlock,
 	float *vPC, float *gPFPC, float *gSCPC, float *gBCPC, float *threshPC, uint8_t *apPC, uint32_t *apBufPC,

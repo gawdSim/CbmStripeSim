@@ -38,6 +38,7 @@ PoissonRegenCells::PoissonRegenCells(int randSeed, std::fstream &psth_file_buf)
 
 	threshs_h = (float *)calloc(num_gr, sizeof(float));
 	aps_h     = (uint8_t *)calloc(num_gr, sizeof(uint8_t));
+	aps_buf_h = (uint32_t *)calloc(num_gr, sizeof(uint32_t));
 
   for (size_t i = 0; i < num_gr; i++) threshs_h[i]  = threshMax;
 
@@ -71,6 +72,7 @@ PoissonRegenCells::~PoissonRegenCells()
 	//delete2DArray(rasters);
   free(threshs_h);
   free(aps_h);
+  free(aps_buf_h);
 	delete2DArray(gr_templates_h);
 	delete2DArray(gr_templates_t_h);
 
@@ -80,6 +82,7 @@ PoissonRegenCells::~PoissonRegenCells()
     cudaFree(gr_templates_t_d[i]);
     cudaFree(threshs_d[i]);
     cudaFree(aps_d[i]);
+    cudaFree(aps_buf_d[i]);
 		cudaDeviceSynchronize();
 	}
   free(gr_templates_t_d);
@@ -87,6 +90,7 @@ PoissonRegenCells::~PoissonRegenCells()
 
   free(threshs_d);
   free(aps_d);
+  free(aps_buf_d);
 }
 
 // Soon to be deprecated: was for loading in pre-computed smoothed-fr
@@ -208,6 +212,8 @@ void PoissonRegenCells::initGRCUDA()
 
 	threshs_d = (float **)calloc(numGPUs, sizeof(float *));
 	aps_d     = (uint8_t **)calloc(numGPUs, sizeof(uint8_t *));
+	aps_buf_d = (uint32_t **)calloc(numGPUs, sizeof(uint32_t *));
+
 
 	LOG_INFO("Allocating device memory...");
 	for (uint32_t i = 0; i < numGPUs; i++)
@@ -219,6 +225,8 @@ void PoissonRegenCells::initGRCUDA()
     cudaMalloc(&threshs_d[i], numGRPerGPU * sizeof(float));
 	  LOG_INFO("threshs malloc error: %s", cudaGetErrorString(cudaGetLastError()));
     cudaMalloc(&aps_d[i], numGRPerGPU * sizeof(uint8_t));
+	  LOG_INFO("aps malloc error: %s", cudaGetErrorString(cudaGetLastError()));
+    cudaMalloc(&aps_buf_d[i], numGRPerGPU * sizeof(uint32_t));
 	  LOG_INFO("aps malloc error: %s", cudaGetErrorString(cudaGetLastError()));
 		cudaDeviceSynchronize();
 	}
@@ -247,6 +255,8 @@ void PoissonRegenCells::initGRCUDA()
 		cudaMemcpy(threshs_d[i], &threshs_h[grCpyStartInd], grCpySize * sizeof(float), cudaMemcpyHostToDevice);
 	  LOG_INFO("threshs memcpy error: %s", cudaGetErrorString(cudaGetLastError()));
 		cudaMemcpy(aps_d[i], &aps_h[grCpyStartInd], grCpySize * sizeof(uint8_t), cudaMemcpyHostToDevice);
+	  LOG_INFO("aps memcpy error: %s", cudaGetErrorString(cudaGetLastError()));
+		cudaMemcpy(aps_buf_d[i], &aps_buf_h[grCpyStartInd], grCpySize * sizeof(uint32_t), cudaMemcpyHostToDevice);
 	  LOG_INFO("aps memcpy error: %s", cudaGetErrorString(cudaGetLastError()));
 		cudaDeviceSynchronize();
   }
@@ -353,7 +363,7 @@ void PoissonRegenCells::calcGRPoissActivity(size_t ts)
 	    	grActRandNums[i], j);
 	  }
     callGRActKernel(streams[i][1], calcGRActNumBlocks, calcGRActNumGRPerB,
-      threshs_d[i], aps_d[i], grActRandNums[i], gr_templates_t_d[i], gr_templates_t_pitch[i], numGROldPerGPU,
+      threshs_d[i], aps_d[i], aps_buf_d[i], grActRandNums[i], gr_templates_t_d[i], gr_templates_t_pitch[i], numGROldPerGPU,
       ts, sPerTS, threshBase, threshMax, threshInc);
   }
 }

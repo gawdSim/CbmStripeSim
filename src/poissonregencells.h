@@ -89,8 +89,11 @@ private:
 
 	float *threshs_h;
 	uint8_t *aps_h;
+	uint32_t *aps_buf_h;
+
 	float **threshs_d;
 	uint8_t **aps_d;
+	uint32_t **aps_buf_d;
 
 	uint32_t **apBufs;
 	uint64_t **apHists;

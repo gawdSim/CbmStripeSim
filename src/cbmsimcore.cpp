@@ -108,11 +108,6 @@ void CBMSimCore::initCUDAStreams()
 	}
 }
 
-void CBMSimCore::initAuxVars()
-{
-	curTime = 0;
-}
-
 void CBMSimCore::syncCUDA(std::string title)
 {
 	cudaError_t error;
@@ -131,17 +126,17 @@ void CBMSimCore::syncCUDA(std::string title)
 	}
 }
 
-void CBMSimCore::calcActivity(enum plasticity pf_pc_plast)
+void CBMSimCore::calcActivity(enum plasticity pf_pc_plast, uint32_t ts)
 {
 	syncCUDA("1");
 
-	grs->calcGRPoissActivity(curTime, streams, 5);
+	grs->calcGRPoissActivity(ts, streams, 5);
 
 	//for (int i = 0; i < numZones; i++)
 	//{
 	//	if (pf_pc_plast == GRADED)
 	//	{
-	//		zones[i]->runPFPCPlastCUDA(streams, 1, curTime);
+	//		zones[i]->runPFPCPlastCUDA(streams, 1, ts);
 	//	}
 
 	//	zones[i]->runUpdatePFBCOutCUDA(streams, i+4);
@@ -167,7 +162,6 @@ void CBMSimCore::calcActivity(enum plasticity pf_pc_plast)
 	//	zones[i]->calcIOActivities();
 	//	zones[i]->updateIOOut();
 	//}
-	curTime++;
 }
 
 //void CBMSimCore::updateMFInput(const uint8_t *mfIn)
@@ -261,8 +255,6 @@ void CBMSimCore::construct(std::fstream &psth_file_buf, MZoneState *state,
 			grs->get_ap_hist_gr_gpu(), mzoneRSeed[i], this->gpuIndStart, numGPUs);
 	}
 	LOG_DEBUG("Mzone construction complete");
-	initAuxVars();
-	LOG_DEBUG("AuxVars good");
 
 	simState = state; // shallow copy
 }

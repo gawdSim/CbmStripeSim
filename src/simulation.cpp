@@ -133,7 +133,7 @@ void Simulation::run_session() {
 			if (useUS == 1 && ts == onsetUS) {
 				sim_core->updateErrDrive(0, 0.3);
 			}
-			sim_core->calcActivity(pf_pc_plast);
+			sim_core->calcActivity(pf_pc_plast, ts);
 		}
 		trial_end = omp_get_wtime();
 		LOG_INFO("'%s' took %0.2fs", trialName.c_str(), trial_end - trial_start);

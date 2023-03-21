@@ -36,7 +36,7 @@ public:
 	CBMSimCore(std::fstream &psth_file_buf, MZoneState *state, int gpuIndStart = -1, int numGPUP2 = -1);
 	~CBMSimCore();
 
-	void calcActivity(enum plasticity pf_pc_plast);
+	void calcActivity(enum plasticity pf_pc_plast, uint32_t ts);
 	//void updateMFInput(const uint8_t *mfIn);
 	//void updateTrueMFs(bool *isTrueMF);
 	//void updateGRStim(int startGRStim, int numGRStim);

@@ -44,15 +44,16 @@ const std::vector<std::string> command_line_single_opts
  */
 const std::vector<std::pair<std::string, std::string>> command_line_pair_opts 
 {
-	{ "-h", "--help"    }, // used when user wants usage information
-	{ "-v", "--visual"  }, // used to specify whether to run in the terminal or a GUI interface
-	{ "-b", "--build"   }, // used to specify the build file in synaptogenesis
-	{ "-s", "--session" }, // used to specify the session file for running trials
-	{ "-i", "--input"   }, // used to specify the file representing the initial state of a simulation for a run
-	{ "-o", "--output"  }, // used to specify the file to output the final state of a simulation after a run
-	{ "-r", "--raster"  }, // used to specify what cell types to collect raster information for during a run
-	{ "-p", "--psth"    }, // used to specify what cell types to collect psth information for during a run
-	{ "-w", "--weights" } // used to specify what synaptic weights to collect during a run
+	{ "-h", "--help"     }, // used when user wants usage information
+	{ "-v", "--visual"   }, // used to specify whether to run in the terminal or a GUI interface
+	{ "-b", "--build"    }, // used to specify the build file in synaptogenesis
+	{ "-s", "--session"  }, // used to specify the session file for running trials
+	{ "-t", "--template" }, // used to specify the template file for generating, well, psths
+	{ "-i", "--input"    }, // used to specify the file representing the initial state of a simulation for a run
+	{ "-o", "--output"   }, // used to specify the file to output the final state of a simulation after a run
+	{ "-r", "--raster"   }, // used to specify what cell types to collect raster information for during a run
+	{ "-p", "--psth"     }, // used to specify what cell types to collect psth information for during a run
+	{ "-w", "--weights"  } // used to specify what synaptic weights to collect during a run
 };
 
 /*
@@ -181,6 +182,7 @@ void print_usage_info()
 	std::cout << std::right << std::setw(20) << "\t-v, --visual [TUI|GUI]" << "\tspecify the visual mode the simulation is run in\n";
 	std::cout << std::right << std::setw(20) << "\t-b, --build [FILE]" << "\tsets the simulation to build a bunny using FILE as the build file\n";
 	std::cout << std::right << std::setw(20) << "\t-s, --session [FILE]" << "\tsets the simulation to run a session using FILE as the session file\n";
+	std::cout << std::right << std::setw(20) << "\t-t, --template [FILE]" << "\tindicates FILE as file to be used to create gr cell templates\n";
 	std::cout << std::right << std::setw(20) << "\t-i, --input [FILE]" << "\tspecify the input simulation file\n";
 	std::cout << std::right << std::setw(20) << "\t-o, --output [FILE]" << "\tspecify the output simulation file\n";
 	std::cout << std::right << std::setw(10) << "\t--pfpc-off|--binary|--cascade" << "\tturns off or sets PFPC plasticity mode; options are mutually exclusive and work as follows:\n\n";
@@ -298,6 +300,8 @@ void parse_commandline(int *argc, char ***argv, parsed_commandline &p_cl)
 					case 's':
 						p_cl.session_file = this_param;
 						break;
+					case 't':
+						p_cl.input_psth_file = this_param;
 					case 'i':
 						p_cl.input_sim_file = this_param;
 						break;
@@ -329,10 +333,11 @@ bool p_cmdline_is_empty(parsed_commandline &p_cl)
 {
 	return p_cl.print_help.empty() && p_cl.vis_mode.empty() &&
 	   p_cl.build_file.empty() && p_cl.session_file.empty() &&
-	   p_cl.input_sim_file.empty() && p_cl.output_sim_file.empty() &&
-	   p_cl.output_basename.empty() && p_cl.pfpc_plasticity.empty() &&
-	   p_cl.mfnc_plasticity.empty() && p_cl.raster_files.empty() &&
-	   p_cl.psth_files.empty() && p_cl.weights_files.empty();
+	   p_cl.input_psth_file.empty() && p_cl.input_sim_file.empty() &&
+	   p_cl.output_sim_file.empty() && p_cl.output_basename.empty() &&
+	   p_cl.pfpc_plasticity.empty() && p_cl.mfnc_plasticity.empty() &&
+	   p_cl.raster_files.empty() && p_cl.psth_files.empty() &&
+	   p_cl.weights_files.empty();
 }
 
 /*
@@ -421,6 +426,23 @@ void validate_commandline(parsed_commandline &p_cl)
 				LOG_FATAL("no input simulation specified in run mode. exiting...");
 				exit(8);
 			}
+			if (!p_cl.input_psth_file.empty())
+			{
+				std::string input_psth_file_fullpath;
+				// verify that input psth file can be found recursively in {PROJECT_ROOT}data/outputs/
+				if (!file_exists(OUTPUT_DATA_PATH, p_cl.input_psth_file, input_psth_file_fullpath))
+				{
+					LOG_FATAL("Could not find input psth file '%s'. Exiting...",
+							  p_cl.input_psth_file.c_str());
+					exit(11);
+				}
+				p_cl.input_psth_file = input_psth_file_fullpath;
+			}
+			else
+			{
+				LOG_FATAL("no input psth given in run mode. exiting...");
+				exit(10);
+			}
 			if (p_cl.output_basename.empty())
 			{
 				LOG_FATAL("You must specify an output basename. Exiting...");
@@ -475,6 +497,7 @@ void cp_parsed_commandline(parsed_commandline &from_p_cl, parsed_commandline &to
 	to_p_cl.vis_mode        = from_p_cl.vis_mode;
 	to_p_cl.build_file      = from_p_cl.build_file;
 	to_p_cl.session_file    = from_p_cl.session_file;
+	to_p_cl.input_psth_file  = from_p_cl.input_psth_file;
 	to_p_cl.input_sim_file  = from_p_cl.input_sim_file;
 	to_p_cl.output_sim_file = from_p_cl.output_sim_file;
 	to_p_cl.output_basename = from_p_cl.output_basename;
@@ -493,6 +516,7 @@ std::string parsed_commandline_to_str(parsed_commandline &p_cl)
 	p_cl_buf << "{ 'vis_mode', '" << p_cl.vis_mode << "' }\n";
 	p_cl_buf << "{ 'build_file', '" << p_cl.build_file << "' }\n";
 	p_cl_buf << "{ 'session_file', '" << p_cl.session_file << "' }\n";
+	p_cl_buf << "{ 'input_psth_file', '" << p_cl.input_psth_file << "' }\n";
 	p_cl_buf << "{ 'input_sim_file', '" << p_cl.input_sim_file << "' }\n";
 	p_cl_buf << "{ 'output_sim_file', '" << p_cl.output_sim_file << "' }\n";
 	p_cl_buf << "{ 'output_basename', '" << p_cl.output_basename << "' }\n";

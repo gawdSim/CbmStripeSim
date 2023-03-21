@@ -22,8 +22,6 @@
 #include "sfmt.h"
 #include "mzone.h"
 
-enum plasticity {OFF, GRADED, BINARY, CASCADE};
-
 /* TODO: consider altering this code so that CBMSimCore does not keep local copies
  *       of the state classes. Consider whether transferring data between classes
  *       by using classes as arguments would be just as fast as we have things now.

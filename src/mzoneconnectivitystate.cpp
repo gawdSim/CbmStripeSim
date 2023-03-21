@@ -17,12 +17,15 @@
 
 MZoneConnectivityState::MZoneConnectivityState(int randSeed)
 {
+	CRandomSFMT0 randGen(randSeed);
 	LOG_DEBUG("Allocating and initializing mzone connectivity arrays...");
 	allocateMemory();
 	initializeVals();
 	LOG_DEBUG("Initializing mzone connections...");
 	LOG_DEBUG("Assigning GR delays");
 	assignGRDelays();
+	LOG_DEBUG("Connecting GR to PC");
+	connectGRtoPC(randGen);
 	LOG_DEBUG("Connecting BC to PC");
 	connectBCtoPC();
 	LOG_DEBUG("Connecting PC to BC");
@@ -30,7 +33,7 @@ MZoneConnectivityState::MZoneConnectivityState(int randSeed)
 	LOG_DEBUG("Connecting SC and PC");
 	connectSCtoPC();
 	LOG_DEBUG("Connecting PC and NC");
-	connectPCtoNC(randSeed);
+	connectPCtoNC(randGen);
 	LOG_DEBUG("Connecting NC and IO");
 	connectNCtoIO();
 	LOG_DEBUG("Connecting IO and PC");
@@ -206,6 +209,11 @@ void MZoneConnectivityState::assignGRDelays()
 	}
 }
 
+void MZoneConnectivityState::connectGRtoPC(CRandomSFMT0 &randGen)
+{
+
+}
+
 void MZoneConnectivityState::connectBCtoPC()
 {
 	int bcToPCRatio = num_bc / num_pc;
@@ -261,12 +269,10 @@ void MZoneConnectivityState::connectSCtoPC()
 	}
 }
 
-void MZoneConnectivityState::connectPCtoNC(int randSeed)
+void MZoneConnectivityState::connectPCtoNC(CRandomSFMT0 &randGen)
 {
 	int pcNumConnected[num_pc] = {0};
 	std::fill(pcNumConnected, pcNumConnected + num_pc, 1);
-
-	CRandomSFMT0 randGen(randSeed);
 	
 	for (int i = 0; i < num_nc; i++)
 	{

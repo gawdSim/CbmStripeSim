@@ -14,9 +14,10 @@
 #include "dynamic2darray.h"
 #include "poissonregencells.h"
 
-PoissonRegenCells::PoissonRegenCells(int randSeed, std::fstream &psth_file_buf)
+PoissonRegenCells::PoissonRegenCells(std::fstream &psth_file_buf)
 {
-	randSeedGen = new CRandomSFMT0(randSeed);
+	// make this time(NULL) or something for random runs
+	randSeedGen = new CRandomSFMT0(0);
 
 	nThreads=1;
 	randGens=new CRandomSFMT0*[nThreads];

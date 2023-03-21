@@ -27,7 +27,7 @@ class PoissonRegenCells
 {
 public:
 	PoissonRegenCells();
-	PoissonRegenCells(int randSeed, std::fstream &psth_file_buf);
+	PoissonRegenCells(std::fstream &psth_file_buf);
 	~PoissonRegenCells();
 
   void calcGRPoissActivity(size_t ts);

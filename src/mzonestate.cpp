@@ -13,7 +13,7 @@ MZoneState::MZoneState() {}
 
 MZoneState::MZoneState(unsigned int nZones) : numZones(nZones)
 {
-	LOG_DEBUG("Generating cbm state...");
+	LOG_DEBUG("Generating mzone state...");
 	CRandomSFMT randGen(time(0));
 
 	int *mzoneCRSeed = new int[nZones];
@@ -30,7 +30,7 @@ MZoneState::MZoneState(unsigned int nZones) : numZones(nZones)
 	}
 	delete[] mzoneCRSeed;
 	delete[] mzoneARSeed;
-	LOG_DEBUG("Finished generating cbm state.");
+	LOG_DEBUG("Finished generating mzone state.");
 }
 
 MZoneState::MZoneState(unsigned int nZones, std::fstream &sim_file_buf) : numZones(nZones)

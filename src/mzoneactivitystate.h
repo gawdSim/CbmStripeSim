@@ -12,6 +12,8 @@
 #include <memory> /* unique_ptr, make_unique */
 #include <cstdint>
 
+enum plasticity {OFF, GRADED, BINARY, ABBOTT_CASCADE, MAUK_CASCADE};
+
 class MZoneActivityState
 {
 public:

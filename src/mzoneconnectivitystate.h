@@ -56,10 +56,11 @@ private:
 	void stateRW(bool read, std::fstream &file);
 
 	void assignGRDelays();
+	void connectGRtoPC(CRandomSFMT0 &randGen);
 	void connectBCtoPC();
 	void connectPCtoBC();
 	void connectSCtoPC();
-	void connectPCtoNC(int randSeed);
+	void connectPCtoNC(CRandomSFMT0 &randGen);
 	void connectNCtoIO();
 	void connectIOtoPC();
 	void connectIOtoIO();

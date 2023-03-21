@@ -30,6 +30,7 @@ typedef struct
 	std::string vis_mode;
 	std::string build_file;
 	std::string session_file;
+	std::string input_psth_file; // TODO: fill this value when init this struct
 	std::string input_sim_file;
 	std::string output_sim_file;
 	std::string output_basename;

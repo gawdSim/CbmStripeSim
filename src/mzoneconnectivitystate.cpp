@@ -10,6 +10,7 @@
 #include <limits.h>
 
 #include "logger.h"
+#include "array_util.h"
 #include "dynamic2darray.h"
 #include "sfmt.h"
 #include "connectivityparams.h"
@@ -20,7 +21,7 @@ MZoneConnectivityState::MZoneConnectivityState(int randSeed)
 	CRandomSFMT0 randGen(randSeed);
 	LOG_DEBUG("Allocating and initializing mzone connectivity arrays...");
 	allocateMemory();
-	initializeVals();
+	//initializeVals();
 	LOG_DEBUG("Initializing mzone connections...");
 	LOG_DEBUG("Assigning GR delays");
 	assignGRDelays();
@@ -66,6 +67,8 @@ void MZoneConnectivityState::allocateMemory()
 	//granule cells
 	pGRDelayMaskfromGRtoBSP = new uint32_t[num_gr];
 
+	pPCfromGRtoPC = allocate2DArray<uint32_t>(num_pc, num_p_gr_from_gr_to_pc);
+
 	//basket cells
 	pBCfromBCtoPC  = allocate2DArray<uint32_t>(num_bc, num_p_bc_from_bc_to_pc);
 	pBCfromPCtoBC  = allocate2DArray<uint32_t>(num_bc, num_p_bc_from_pc_to_bc);
@@ -91,52 +94,53 @@ void MZoneConnectivityState::allocateMemory()
 	pIOOutIOIO = allocate2DArray<uint32_t>(num_io, num_p_io_out_io_to_io);
 }
 
-void MZoneConnectivityState::initializeVals()
-{
-	// granule cells
-	std::fill(pGRDelayMaskfromGRtoBSP, pGRDelayMaskfromGRtoBSP + num_gr, 0);
-
-	// basket cells
-	std::fill(pBCfromBCtoPC[0], pBCfromBCtoPC[0]
-			+ num_bc * num_p_bc_from_bc_to_pc, 0);
-	std::fill(pBCfromPCtoBC[0], pBCfromPCtoBC[0]
-			+ num_bc * num_p_bc_from_pc_to_bc, 0);
-
-	// stellate cells
-	std::fill(pSCfromSCtoPC[0], pSCfromSCtoPC[0]
-			+ num_sc * num_p_sc_from_sc_to_pc, 0);
-
-	// purkinje cells
-	std::fill(pPCfromBCtoPC[0], pPCfromBCtoPC[0]
-			+ num_pc * num_p_pc_from_bc_to_pc, 0);
-	std::fill(pPCfromPCtoBC[0], pPCfromPCtoBC[0]
-			+ num_pc * num_p_pc_from_pc_to_bc, 0);
-	std::fill(pPCfromSCtoPC[0], pPCfromSCtoPC[0]
-			+ num_pc * num_p_pc_from_sc_to_pc, 0);
-	std::fill(pPCfromPCtoNC[0], pPCfromPCtoNC[0]
-			+ num_pc * num_p_pc_from_pc_to_nc, 0);
-
-	// nucleus cells
-	std::fill(pNCfromPCtoNC[0], pNCfromPCtoNC[0]
-			+ num_nc * num_p_nc_from_pc_to_nc, 0);
-	std::fill(pNCfromNCtoIO[0], pNCfromNCtoIO[0]
-			+ num_nc * num_p_nc_from_nc_to_io, 0);
-
-	// inferior olivary cells
-	std::fill(pIOfromIOtoPC[0], pIOfromIOtoPC[0]
-			+ num_io * num_p_io_from_io_to_pc, 0);
-	std::fill(pIOfromNCtoIO[0], pIOfromNCtoIO[0]
-			+ num_io * num_p_io_from_nc_to_io, 0);
-	std::fill(pIOInIOIO[0], pIOInIOIO[0]
-			+ num_io * num_p_io_in_io_to_io, 0);
-	std::fill(pIOOutIOIO[0], pIOOutIOIO[0]
-			+ num_io * num_p_io_out_io_to_io, 0);
-}
+//void MZoneConnectivityState::initializeVals()
+//{
+//	// granule cells
+//	std::fill(pGRDelayMaskfromGRtoBSP, pGRDelayMaskfromGRtoBSP + num_gr, 0);
+//
+//	// basket cells
+//	std::fill(pBCfromBCtoPC[0], pBCfromBCtoPC[0]
+//			+ num_bc * num_p_bc_from_bc_to_pc, 0);
+//	std::fill(pBCfromPCtoBC[0], pBCfromPCtoBC[0]
+//			+ num_bc * num_p_bc_from_pc_to_bc, 0);
+//
+//	// stellate cells
+//	std::fill(pSCfromSCtoPC[0], pSCfromSCtoPC[0]
+//			+ num_sc * num_p_sc_from_sc_to_pc, 0);
+//
+//	// purkinje cells
+//	std::fill(pPCfromBCtoPC[0], pPCfromBCtoPC[0]
+//			+ num_pc * num_p_pc_from_bc_to_pc, 0);
+//	std::fill(pPCfromPCtoBC[0], pPCfromPCtoBC[0]
+//			+ num_pc * num_p_pc_from_pc_to_bc, 0);
+//	std::fill(pPCfromSCtoPC[0], pPCfromSCtoPC[0]
+//			+ num_pc * num_p_pc_from_sc_to_pc, 0);
+//	std::fill(pPCfromPCtoNC[0], pPCfromPCtoNC[0]
+//			+ num_pc * num_p_pc_from_pc_to_nc, 0);
+//
+//	// nucleus cells
+//	std::fill(pNCfromPCtoNC[0], pNCfromPCtoNC[0]
+//			+ num_nc * num_p_nc_from_pc_to_nc, 0);
+//	std::fill(pNCfromNCtoIO[0], pNCfromNCtoIO[0]
+//			+ num_nc * num_p_nc_from_nc_to_io, 0);
+//
+//	// inferior olivary cells
+//	std::fill(pIOfromIOtoPC[0], pIOfromIOtoPC[0]
+//			+ num_io * num_p_io_from_io_to_pc, 0);
+//	std::fill(pIOfromNCtoIO[0], pIOfromNCtoIO[0]
+//			+ num_io * num_p_io_from_nc_to_io, 0);
+//	std::fill(pIOInIOIO[0], pIOInIOIO[0]
+//			+ num_io * num_p_io_in_io_to_io, 0);
+//	std::fill(pIOOutIOIO[0], pIOOutIOIO[0]
+//			+ num_io * num_p_io_out_io_to_io, 0);
+//}
 
 void MZoneConnectivityState::deallocMemory()
 {
 	// granule cells
 	delete[] pGRDelayMaskfromGRtoBSP;
+	delete2DArray<uint32_t>(pPCfromGRtoPC);
 
 	// basket cells
 	delete2DArray<uint32_t>(pBCfromBCtoPC);
@@ -209,9 +213,18 @@ void MZoneConnectivityState::assignGRDelays()
 	}
 }
 
+//TODO: TEST
 void MZoneConnectivityState::connectGRtoPC(CRandomSFMT0 &randGen)
 {
-
+	for (uint32_t i = 0; i < num_pc; i++)
+	{
+		for (uint32_t j = 0; j < num_p_gr_from_gr_to_pc; j++)
+		{
+			pPCfromGRtoPC[i][j] = i * num_p_gr_from_gr_to_pc + j;
+		}
+	}
+	// shuffle every element of the connectivity array
+	fisher_yates_shuffle<uint32_t>(pPCfromGRtoPC[0], num_pc * num_p_gr_from_gr_to_pc);
 }
 
 void MZoneConnectivityState::connectBCtoPC()

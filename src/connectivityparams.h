@@ -25,6 +25,8 @@ extern int num_nc;
 extern int num_io; 
 extern int gr_pf_vel_in_gr_x_per_t_step; 
 extern int gr_af_delay_in_t_step; 
+extern int num_p_gr_from_gr_to_pc;
+extern int num_p_gr_from_gr_to_pc_p2;
 extern int num_p_bc_from_bc_to_pc; 
 extern int num_p_pc_from_bc_to_pc; 
 extern int num_p_bc_from_gr_to_bc; 

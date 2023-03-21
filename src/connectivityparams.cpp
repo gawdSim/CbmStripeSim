@@ -22,6 +22,8 @@ int num_nc                       = 0;
 int num_io                       = 0; 
 int gr_pf_vel_in_gr_x_per_t_step = 0; 
 int gr_af_delay_in_t_step        = 0; 
+int num_p_gr_from_gr_to_pc       = 0;
+int num_p_gr_from_gr_to_pc_p2    = 0;
 int num_p_bc_from_bc_to_pc       = 0; 
 int num_p_pc_from_bc_to_pc       = 0; 
 int num_p_bc_from_gr_to_bc       = 0; 
@@ -75,6 +77,8 @@ void populate_con_params(parsed_build_file &p_file)
 	num_io                       = std::stoi(p_file.parsed_var_sections["connectivity"].param_map["num_io"].value); 
 	gr_pf_vel_in_gr_x_per_t_step = std::stoi(p_file.parsed_var_sections["connectivity"].param_map["gr_pf_vel_in_gr_x_per_t_step"].value);
 	gr_af_delay_in_t_step        = std::stoi(p_file.parsed_var_sections["connectivity"].param_map["gr_af_delay_in_t_step"].value);
+	num_p_gr_from_gr_to_pc       = std::stoi(p_file.parsed_var_sections["connectivity"].param_map["num_p_gr_from_gr_to_pc"].value);
+	num_p_gr_from_gr_to_pc_p2    = std::stoi(p_file.parsed_var_sections["connectivity"].param_map["num_p_gr_from_gr_to_pc_p2"].value);
 	num_p_bc_from_bc_to_pc       = std::stoi(p_file.parsed_var_sections["connectivity"].param_map["num_p_bc_from_bc_to_pc"].value);
 	num_p_pc_from_bc_to_pc       = std::stoi(p_file.parsed_var_sections["connectivity"].param_map["num_p_pc_from_bc_to_pc"].value);
 	num_p_bc_from_gr_to_bc       = std::stoi(p_file.parsed_var_sections["connectivity"].param_map["num_p_bc_from_gr_to_bc"].value);
@@ -133,6 +137,8 @@ void read_con_params(std::fstream &in_param_buf)
 	in_param_buf.read((char *)&num_io, sizeof(int));
 	in_param_buf.read((char *)&gr_pf_vel_in_gr_x_per_t_step, sizeof(int));
 	in_param_buf.read((char *)&gr_af_delay_in_t_step, sizeof(int));
+	in_param_buf.read((char *)&num_p_gr_from_gr_to_pc, sizeof(int)); 
+	in_param_buf.read((char *)&num_p_gr_from_gr_to_pc_p2, sizeof(int)); 
 	in_param_buf.read((char *)&num_p_bc_from_bc_to_pc, sizeof(int));
 	in_param_buf.read((char *)&num_p_pc_from_bc_to_pc, sizeof(int));
 	in_param_buf.read((char *)&num_p_bc_from_gr_to_bc, sizeof(int));
@@ -190,6 +196,8 @@ void write_con_params(std::fstream &out_param_buf)
 	out_param_buf.write((char *)&num_io, sizeof(int));
 	out_param_buf.write((char *)&gr_pf_vel_in_gr_x_per_t_step, sizeof(int));
 	out_param_buf.write((char *)&gr_af_delay_in_t_step, sizeof(int));
+	out_param_buf.write((char *)&num_p_gr_from_gr_to_pc, sizeof(int)); 
+	out_param_buf.write((char *)&num_p_gr_from_gr_to_pc_p2, sizeof(int)); 
 	out_param_buf.write((char *)&num_p_bc_from_bc_to_pc, sizeof(int));
 	out_param_buf.write((char *)&num_p_pc_from_bc_to_pc, sizeof(int));
 	out_param_buf.write((char *)&num_p_bc_from_gr_to_bc, sizeof(int));

@@ -1,4 +1,5 @@
 #include <sys/stat.h> // mkdir (POSIX ONLY)
+#include <omp.h> // omp_get_wtime
 
 #include "logger.h"
 #include "file_utility.h"
@@ -107,5 +108,53 @@ void Simulation::init_sim(std::string in_psth_filename, std::string in_sim_filen
 	sim_file_buf.close();
 	sim_initialized = true;
 	LOG_DEBUG("Simulation initialized.");
+}
+
+void Simulation::run_session() {
+
+	double session_start, session_end, trial_start, trial_end;
+	trial = 0;
+	rast_ctr = 0;
+	session_start = omp_get_wtime();
+	while (trial < td.num_trials) {
+		std::string trialName = td.trial_names[trial];
+
+		uint32_t useCS        = td.use_css[trial];
+		uint32_t onsetCS      = pre_collect_ts + td.cs_onsets[trial];
+		uint32_t csLength     = td.cs_lens[trial];
+		uint32_t useUS        = td.use_uss[trial];
+		uint32_t onsetUS      = pre_collect_ts + td.us_onsets[trial];
+
+		psth_ctr = 0;
+		LOG_INFO("Trial number: %d", trial + 1);
+		trial_start = omp_get_wtime();
+		for (uint32_t ts = 0; ts < trial_time; ts++) {
+			/* deliver the US */
+			if (useUS == 1 && ts == onsetUS) {
+				sim_core->updateErrDrive(0, 0.3);
+			}
+			grs->calcGRPoissActivity(ts);
+			
+		}
+		trial_end = omp_get_wtime();
+		LOG_INFO("'%s' took %0.2fs", trialName.c_str(), trial_end - trial_start);
+		trial++;
+	}
+	session_end = omp_get_wtime();
+	LOG_INFO("Session finished. took %0.2fs", session_end - session_start);
+}
+
+void Simulation::save_sim_to_file()
+{
+	if (out_sim_filename_created)
+	{
+		LOG_DEBUG("Saving simulation to file...");
+		std::fstream outSimFileBuffer(out_sim_name.c_str(), std::ios::out | std::ios::binary);
+		write_con_params(outSimFileBuffer);
+		if (!sim_core) sim_state->writeState(outSimFileBuffer);
+		else sim_core->writeState(outSimFileBuffer);
+		outSimFileBuffer.close();
+		LOG_DEBUG("simulation save to file %s.", out_sim_name.c_str());
+	}
 }
 

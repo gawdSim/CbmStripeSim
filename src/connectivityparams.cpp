@@ -102,8 +102,8 @@ void populate_con_params(parsed_build_file &p_file)
 	num_p_io_out_io_to_io        = std::stoi(p_file.parsed_var_sections["connectivity"].param_map["num_p_io_out_io_to_io"].value);
 
 	/* float con params */
-	msPerTimeStep            = std::stof(p_file.parsed_var_sections["connectivity"].param_map["msPerTimeStep"].value); 
-	numPopHistBinsPC         = std::stof(p_file.parsed_var_sections["connectivity"].param_map["numPopHistBinsPC"].value); 
+	msPerTimeStep            = std::stof(p_file.parsed_var_sections["activity"].param_map["msPerTimeStep"].value); 
+	numPopHistBinsPC         = std::stof(p_file.parsed_var_sections["activity"].param_map["numPopHistBinsPC"].value); 
 
 	/* act params */
 	//eLeakGR      = std::stof(p_file.parsed_var_sections["activity"].param_map["eLeakGR"].value); 

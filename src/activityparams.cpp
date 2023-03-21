@@ -54,7 +54,6 @@ float gIncPCtoBC                 = 0.0;
 float gIncGRtoBC                 = 0.0;
 float gIncGRtoSC                 = 0.0;
 float rawGLeakBC                 = 0.0;
-float rawGLeakGO                 = 0.0;
 float rawGLeakGR                 = 0.0;
 float rawGLeakIO                 = 0.0;
 float rawGLeakNC                 = 0.0;

@@ -18,13 +18,13 @@ public:
 	parsed_sess_file s_file;
 	trials_data td;
 	PoissonRegenCells *grs = nullptr;
-	MZoneState *sim_state = nullptr;
-	CBMSimCore *sim_core = nullptr;
+	MZoneState *sim_state  = nullptr;
+	CBMSimCore *sim_core   = nullptr;
 
-	bool data_out_dir_created;
-	bool out_sim_filename_created;
-	bool trials_data_initialized;
-	bool sim_initialized;
+	bool data_out_dir_created     = false;
+	bool out_sim_filename_created = false;
+	bool trials_data_initialized  = false;
+	bool sim_initialized          = false;
 
 	std::string data_out_path;
 	std::string data_out_base_name;
@@ -35,6 +35,7 @@ public:
 
 	uint32_t trial;
 	uint32_t rast_ctr;
+	uint32_t psth_ctr;
 
 	const uint32_t num_mzones = 1;
 	const uint32_t pre_collect_ts = 2000;
@@ -51,6 +52,9 @@ public:
 	void init_sess(std::string sess_file);
 	void set_plast_modes(std::string pfpc_plast);
 	void init_sim(std::string in_psth_filename, std::string in_sim_filename);
+	void run_session();
+
+	void save_sim_to_file();
 
 };
 

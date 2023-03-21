@@ -75,7 +75,7 @@ extern float threshMaxIO;
 extern float threshMaxNC;
 extern float threshMaxPC;
 extern float threshMaxSC;
-//extern float weightScale;
+extern float weightScale;
 
 /* derived act params */
 //extern float threshDecGR;

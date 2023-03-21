@@ -14,7 +14,8 @@
 #include "dynamic2darray.h"
 #include "poissonregencells.h"
 
-PoissonRegenCells::PoissonRegenCells(std::fstream &psth_file_buf)
+PoissonRegenCells::PoissonRegenCells(std::fstream &psth_file_buf, cudaStream_t **streams)
+
 {
 	// make this time(NULL) or something for random runs
 	randSeedGen = new CRandomSFMT0(0);
@@ -35,19 +36,22 @@ PoissonRegenCells::PoissonRegenCells(std::fstream &psth_file_buf)
 	sPerTS = msPerTimeStep / 1000;
 
 	expansion_factor = 1; //128; // by what factor are we expanding the granule cell number?
-  num_gr_old = num_gr / expansion_factor;
+	num_gr_old = num_gr / expansion_factor;
 
 	threshs_h = (float *)calloc(num_gr, sizeof(float));
 	aps_h     = (uint8_t *)calloc(num_gr, sizeof(uint8_t));
 	aps_buf_h = (uint32_t *)calloc(num_gr, sizeof(uint32_t));
+	aps_hist_h = (uint64_t *)calloc(num_gr, sizeof(uint64_t));
 
-  for (size_t i = 0; i < num_gr; i++) threshs_h[i]  = threshMax;
+	for (size_t i = 0; i < num_gr; i++) threshs_h[i]  = threshMax;
 
 	psths = allocate2DArray<uint8_t>(2800, num_gr);
 	//rasters = allocate2DArray<uint8_t>(2800, num_gr); // hardcoded, 2800 ts by 1000 trials by num_gr grs
 	gr_templates_h = allocate2DArray<float>(num_gr / expansion_factor, 2800); // for now, only have firing rates from trials of 2800
 	init_templates_from_psth_file(psth_file_buf);
-  initGRCUDA();
+
+	initGRCUDA();
+	initCURAND(streams);
 }
 
 PoissonRegenCells::~PoissonRegenCells()
@@ -71,9 +75,10 @@ PoissonRegenCells::~PoissonRegenCells()
 
 	delete2DArray(psths);
 	//delete2DArray(rasters);
-  free(threshs_h);
-  free(aps_h);
-  free(aps_buf_h);
+	free(threshs_h);
+	free(aps_h);
+	free(aps_buf_h);
+	free(aps_hist_h);
 	delete2DArray(gr_templates_h);
 	delete2DArray(gr_templates_t_h);
 
@@ -84,6 +89,7 @@ PoissonRegenCells::~PoissonRegenCells()
     cudaFree(threshs_d[i]);
     cudaFree(aps_d[i]);
     cudaFree(aps_buf_d[i]);
+    cudaFree(aps_hist_d[i]);
 		cudaDeviceSynchronize();
 	}
   free(gr_templates_t_d);
@@ -92,6 +98,7 @@ PoissonRegenCells::~PoissonRegenCells()
   free(threshs_d);
   free(aps_d);
   free(aps_buf_d);
+  free(aps_hist_d);
 }
 
 // Soon to be deprecated: was for loading in pre-computed smoothed-fr
@@ -205,16 +212,13 @@ void PoissonRegenCells::initGRCUDA()
   calcGRActNumGRPerB = 512; // 1024 ie max num threads per block
   calcGRActNumBlocks = numGRPerGPU / calcGRActNumGRPerB; // gives 2 ^ 17
 
-  initCUDAStreams();
-  initCURAND();
-
   gr_templates_t_d     = (float **)calloc(numGPUs, sizeof(float *));
   gr_templates_t_pitch = (size_t *)calloc(numGPUs, sizeof(size_t));
 
 	threshs_d = (float **)calloc(numGPUs, sizeof(float *));
 	aps_d     = (uint8_t **)calloc(numGPUs, sizeof(uint8_t *));
 	aps_buf_d = (uint32_t **)calloc(numGPUs, sizeof(uint32_t *));
-
+	aps_hist_d = (uint64_t **)calloc(numGPUs, sizeof(uint64_t *));
 
 	LOG_INFO("Allocating device memory...");
 	for (uint32_t i = 0; i < numGPUs; i++)
@@ -228,12 +232,13 @@ void PoissonRegenCells::initGRCUDA()
     cudaMalloc(&aps_d[i], numGRPerGPU * sizeof(uint8_t));
 	  LOG_INFO("aps malloc error: %s", cudaGetErrorString(cudaGetLastError()));
     cudaMalloc(&aps_buf_d[i], numGRPerGPU * sizeof(uint32_t));
-	  LOG_INFO("aps malloc error: %s", cudaGetErrorString(cudaGetLastError()));
+	  LOG_INFO("aps buf malloc error: %s", cudaGetErrorString(cudaGetLastError()));
+    cudaMalloc(&aps_hist_d[i], numGRPerGPU * sizeof(uint64_t));
+	  LOG_INFO("aps hist malloc error: %s", cudaGetErrorString(cudaGetLastError()));
 		cudaDeviceSynchronize();
 	}
 	LOG_INFO("alloc final error: %s", cudaGetErrorString(cudaGetLastError()));
 	LOG_INFO("Finished allocating device memory.");
-
 
 	LOG_INFO("Copying host to device memory...");
 
@@ -258,51 +263,16 @@ void PoissonRegenCells::initGRCUDA()
 		cudaMemcpy(aps_d[i], &aps_h[grCpyStartInd], grCpySize * sizeof(uint8_t), cudaMemcpyHostToDevice);
 	  LOG_INFO("aps memcpy error: %s", cudaGetErrorString(cudaGetLastError()));
 		cudaMemcpy(aps_buf_d[i], &aps_buf_h[grCpyStartInd], grCpySize * sizeof(uint32_t), cudaMemcpyHostToDevice);
-	  LOG_INFO("aps memcpy error: %s", cudaGetErrorString(cudaGetLastError()));
+	  LOG_INFO("aps buf memcpy error: %s", cudaGetErrorString(cudaGetLastError()));
+		cudaMemcpy(aps_hist_d[i], &aps_hist_h[grCpyStartInd], grCpySize * sizeof(uint64_t), cudaMemcpyHostToDevice);
+	  LOG_INFO("aps hist memcpy error: %s", cudaGetErrorString(cudaGetLastError()));
 		cudaDeviceSynchronize();
   }
 	LOG_INFO("memcpy final error: %s", cudaGetErrorString(cudaGetLastError()));
 	LOG_INFO("Finished copying host to device memory.");
 }
 
-void PoissonRegenCells::initCUDAStreams()
-{
-	cudaError_t error;
-
-	int maxNumGPUs;
-	// TODO: use assert, try, and catch for these types of errors
-	error = cudaGetDeviceCount(&maxNumGPUs);
-
-	LOG_INFO("CUDA max num devices: %d", maxNumGPUs);
-	LOG_INFO("%s", cudaGetErrorString(error));
-	LOG_INFO("CUDA num devices: %d, starting at GPU %d", numGPUs, gpuIndStart);
-
-	streams = new cudaStream_t*[numGPUs];
-
-	for (int i = 0; i < numGPUs; i++)
-	{
-		error = cudaSetDevice(i + gpuIndStart);
-		LOG_INFO("Selecting device %d", i);
-		LOG_INFO("%s", cudaGetErrorString(error));
-		streams[i] = new cudaStream_t[8];
-		LOG_INFO("Resetting device %d", i);
-		LOG_INFO("%s", cudaGetErrorString(error));
-		cudaDeviceSynchronize();
-
-		for (int j = 0; j < 8; j++)
-		{
-			error = cudaStreamCreate(&streams[i][j]);
-			LOG_INFO("Initializing stream %d for device %d",j, i);
-			LOG_INFO("%s", cudaGetErrorString(error));
-		}
-		cudaDeviceSynchronize();
-		error = cudaGetLastError();
-		LOG_INFO("Cuda device %d", i);
-		LOG_INFO("%s", cudaGetErrorString(error));
-	}
-}
-
-void PoissonRegenCells::initCURAND()
+void PoissonRegenCells::initCURAND(cudaStream_t **streams)
 {
 	// set up rng
 	LOG_INFO("Initializing curand state...");
@@ -315,9 +285,9 @@ void PoissonRegenCells::initCURAND()
 	grActRandNums = new float*[numGPUs];
 
   // we're just playing with some numbers rn
-  numGRPerRandBatch = 32768; // 2 ^ 17
-  updateGRRandNumGRPerB = 512;// gives 1024, max num thread per block
-  updateGRRandNumBlocks = numGRPerRandBatch / updateGRRandNumGRPerB;
+	numGRPerRandBatch = 32768; 
+	updateGRRandNumGRPerB = 512;
+	updateGRRandNumBlocks = numGRPerRandBatch / updateGRRandNumGRPerB;
 	dim3 updateGRRandGridDim(updateGRRandNumBlocks);
 	dim3 updateGRRandBlockDim(updateGRRandNumGRPerB);
 
@@ -334,7 +304,7 @@ void PoissonRegenCells::initCURAND()
 	  LOG_INFO("rng malloc error: %s", cudaGetErrorString(cudaGetLastError()));
 		// adding i to init seed so that we get different nums across gpus
 		callCurandSetupKernel<curandStateMRG32k3a, dim3, dim3>
-		(streams[i][1], mrg32k3aRNGs[i], (curandInitSeed + (uint32_t)i) % INT_MAX, updateGRRandGridDim, updateGRRandBlockDim);
+		(streams[i][i], mrg32k3aRNGs[i], (curandInitSeed + (uint32_t)i) % INT_MAX, updateGRRandGridDim, updateGRRandBlockDim);
 	  LOG_INFO("curand setup error: %s", cudaGetErrorString(cudaGetLastError()));
 		cudaMalloc(&grActRandNums[i], numGRPerGPU * sizeof(float));
 	  LOG_INFO("rand num malloc error: %s", cudaGetErrorString(cudaGetLastError()));
@@ -346,8 +316,10 @@ void PoissonRegenCells::initCURAND()
 	LOG_INFO("Last error: %s", cudaGetErrorString(cudaGetLastError()));
 }
 
-void PoissonRegenCells::calcGRPoissActivity(size_t ts)
+void PoissonRegenCells::calcGRPoissActivity(size_t ts, cudaStream_t **streams, uint8_t streamN)
 {
+	uint32_t apBufGRHistMask = (1 << (int)tsPerHistBinGR) - 1;
+
 	for (int i = 0; i < numGPUs; i++)
 	{
 		cudaSetDevice(i + gpuIndStart);
@@ -363,9 +335,9 @@ void PoissonRegenCells::calcGRPoissActivity(size_t ts)
 	    	mrg32k3aRNGs[i], updateGRRandNumBlocks, updateGRRandNumGRPerB,
 	    	grActRandNums[i], j);
 	  }
-    callGRActKernel(streams[i][1], calcGRActNumBlocks, calcGRActNumGRPerB,
-      threshs_d[i], aps_d[i], aps_buf_d[i], grActRandNums[i], gr_templates_t_d[i], gr_templates_t_pitch[i], numGROldPerGPU,
-      ts, sPerTS, threshBase, threshMax, threshInc);
+    callGRActKernel(streams[i][streamN], calcGRActNumBlocks, calcGRActNumGRPerB,
+      threshs_d[i], aps_d[i], aps_buf_d[i], aps_hist_d[i], grActRandNums[i], gr_templates_t_d[i], gr_templates_t_pitch[i], numGROldPerGPU,
+      ts, sPerTS, apBufGRHistMask, threshBase, threshMax, threshInc);
   }
 }
 
@@ -409,8 +381,6 @@ const uint8_t *PoissonRegenCells::getGRAPs()
 }
 
 const float **PoissonRegenCells::getGRFRs() { return (const float **)gr_fr; }
-
-uint32_t **PoissonRegenCells::getApBufGR() { return apBufs; }
-
-uint64_t **PoissonRegenCells::getApHistGR() { return apHists; }
+uint32_t **PoissonRegenCells::get_ap_buf_gr_gpu() { return aps_buf_d; }
+uint64_t **PoissonRegenCells::get_ap_hist_gr_gpu() { return aps_hist_d; }
 

@@ -54,15 +54,18 @@ __device__ float getRandFloat(uint64_t seed, int tid, uint32_t *threadCallCount)
 
 //**-----------------GR Kernels------------------**
 
-__global__ void calcActivityGRGPU(float *threshGPU, uint8_t *apGPU, uint32_t *apBufGPU, float *randoms, float *gr_templateGPU,
-      size_t gr_template_pitchGPU, size_t num_gr_old, size_t ts, float s_per_ts, float threshBase, float threshMax,
-      float threshInc)
+__global__ void calcActivityGRGPU(float *threshGPU, uint8_t *apGPU, uint32_t *apBufGPU, uint64_t *apHistGPU, float *randoms,
+	  float *gr_templateGPU, size_t gr_template_pitchGPU, size_t num_gr_old, size_t ts, float s_per_ts, uint32_t ap_buf_hist_mask, 
+	  float threshBase, float threshMax, float threshInc)
 {
 	int tix = blockIdx.x * blockDim.x + threadIdx.x;
 	float *gr_template_row = (float *)((char *)gr_templateGPU + ts * gr_template_pitchGPU);
 	//threshGPU[tix] += (threshMax - threshGPU[tix]) * threshInc;
 	apGPU[tix] = randoms[tix] < (gr_template_row[tix] * s_per_ts); // * threshGPU[tix]);
 	apBufGPU[tix] = (apBufGPU[tix] << 1) | apGPU[tix];
+	apHistGPU[tix] <<= 1;
+	apHistGPU[tix] |= ((apBufGPU[tix] & ap_buf_hist_mask) > 0) * 0x00000001;
+
 	//threshGPU[tix] = apGPU[tix] * threshBase + (apGPU[tix] - 1) * threshGPU[tix];
 
 }
@@ -421,11 +424,12 @@ void callCurandGenerateUniformKernel(cudaStream_t &st, randState *state, uint32_
 }
 
 void callGRActKernel(cudaStream_t &st, uint32_t numBlocks, uint32_t numGRPerBlock,
-    float *threshGPU, uint8_t *apGPU, uint32_t *apBufGPU, float *randoms, float *gr_templateGPU, size_t gr_template_pitchGPU,
-    size_t num_gr_old, size_t ts, float s_per_ts, float threshBase, float threshMax, float threshInc)
+    float *threshGPU, uint8_t *apGPU, uint32_t *apBufGPU, uint64_t *apHistGPU, float *randoms, float *gr_templateGPU,
+	size_t gr_template_pitchGPU, size_t num_gr_old, size_t ts, float s_per_ts, uint32_t ap_buf_hist_mask, float threshBase,
+	float threshMax, float threshInc)
 {
-	calcActivityGRGPU<<<numBlocks, numGRPerBlock, 0, st>>>(threshGPU, apGPU, apBufGPU, randoms, gr_templateGPU,
-      gr_template_pitchGPU, num_gr_old, ts, s_per_ts, threshBase, threshMax, threshInc);
+	calcActivityGRGPU<<<numBlocks, numGRPerBlock, 0, st>>>(threshGPU, apGPU, apBufGPU, apHistGPU, randoms, gr_templateGPU,
+      gr_template_pitchGPU, num_gr_old, ts, s_per_ts, ap_buf_hist_mask, threshBase, threshMax, threshInc);
 }
 
 void callPCActKernel(cudaStream_t &st, unsigned int numBlocks, unsigned int numPCPerBlock,

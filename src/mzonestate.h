@@ -14,7 +14,6 @@
 #include <limits.h>
 
 #include <cstdint>
-#include "poissonregencells.h"
 #include "mzoneconnectivitystate.h"
 #include "mzoneactivitystate.h"
 #include "connectivityparams.h" // <-- added in 06/01/2022
@@ -36,14 +35,12 @@ class MZoneState
 
 		MZoneConnectivityState *getMZoneConStateInternal(unsigned int zoneN);
 		MZoneActivityState *getMZoneActStateInternal(unsigned int zoneN);
-		PoissonRegenCells *getGRCellPop();
 
 	private:
 		uint32_t numZones;
 
 		MZoneConnectivityState **mzoneConStates;
 		MZoneActivityState **mzoneActStates;
-		PoissonRegenCells *grCells;
 };
 
 #endif /* M_ZONE_STATE_H_ */

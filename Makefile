@@ -45,7 +45,7 @@ DEBUG_OBJS   := $(CUDA_DEBUG_OBJS) $(NON_CUDA_DEBUG_OBJS)
 
 NVCC       := nvcc
 NVCC_FLAGS := -arch=native -Xcompiler -fPIC -O3
-NVCC_DEBUG_FLAGS := -arch=native -Xcompiler -fPIC -g -G
+NVCC_DEBUG_FLAGS := -arch=native -maxrregcount 24 -Xcompiler -fPIC -g -G
 
 CPP             := g++-11
 CPP_FLAGS       := -m64 -pipe -std=c++14 -fopenmp -O3  -fPIC

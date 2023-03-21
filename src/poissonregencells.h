@@ -27,25 +27,24 @@ class PoissonRegenCells
 {
 public:
 	PoissonRegenCells();
-	PoissonRegenCells(std::fstream &psth_file_buf);
+	PoissonRegenCells(std::fstream &psth_file_buf, cudaStream_t **streams);
 	~PoissonRegenCells();
 
-  void calcGRPoissActivity(size_t ts);
+	void calcGRPoissActivity(size_t ts, cudaStream_t **streams, uint8_t streamN);
 	//void fill_rasters(uint32_t ts);
 	void fill_psths(size_t ts);
 	//void save_rasters(std::string out_file);
 	void save_psths(std::string out_file);
 	const uint8_t *getGRAPs();
 	const float **getGRFRs();
-	uint32_t **getApBufGR();
-	uint64_t **getApHistGR();
+	uint32_t **get_ap_buf_gr_gpu();
+	uint64_t **get_ap_hist_gr_gpu();
 
 private:
 	void init_fr_from_file(std::fstream &input_file_buf);
 	void init_templates_from_psth_file(std::fstream &input_psth_file_buf);
-  void initGRCUDA();
-  void initCUDAStreams();
-  void initCURAND();
+	void initGRCUDA();
+	void initCURAND(cudaStream_t **streams);
 
 	std::normal_distribution<float> *normDist;
 	std::mt19937 *noiseRandGen;
@@ -55,7 +54,6 @@ private:
 
 	uint32_t gpuIndStart = 0;
   uint64_t numGPUs = 2;
-  cudaStream_t **streams;
 
 	float **grActRandNums;
 
@@ -90,13 +88,13 @@ private:
 	float *threshs_h;
 	uint8_t *aps_h;
 	uint32_t *aps_buf_h;
+	uint64_t *aps_hist_h;
 
 	float **threshs_d;
 	uint8_t **aps_d;
 	uint32_t **aps_buf_d;
 
-	uint32_t **apBufs;
-	uint64_t **apHists;
+	uint64_t **aps_hist_d;
 };
 
 #endif /* POISSONREGENCELLS_H_ */

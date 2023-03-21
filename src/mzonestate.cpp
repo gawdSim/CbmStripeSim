@@ -82,5 +82,3 @@ MZoneActivityState* MZoneState::getMZoneActStateInternal(unsigned int zoneN) { r
 
 MZoneConnectivityState* MZoneState::getMZoneConStateInternal(unsigned int zoneN) { return mzoneConStates[zoneN]; }
 
-PoissonRegenCells *MZoneState::getGRCellPop() { return grCells; }
-

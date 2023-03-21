@@ -18,6 +18,7 @@
 #include <time.h>
 #include <cstdint>
 
+#include "poissonregencells.h"
 #include "mzonestate.h"
 #include "sfmt.h"
 #include "mzone.h"
@@ -32,10 +33,10 @@ class CBMSimCore
 {
 public:
 	CBMSimCore();
-	CBMSimCore(MZoneState *state, int gpuIndStart = -1, int numGPUP2 = -1);
+	CBMSimCore(std::fstream &psth_file_buf, MZoneState *state, int gpuIndStart = -1, int numGPUP2 = -1);
 	~CBMSimCore();
 
-	void calcActivity(float spillFrac, enum plasticity pf_pc_plast);
+	void calcActivity(enum plasticity pf_pc_plast);
 	//void updateMFInput(const uint8_t *mfIn);
 	//void updateTrueMFs(bool *isTrueMF);
 	//void updateGRStim(int startGRStim, int numGRStim);
@@ -52,7 +53,8 @@ protected:
 
 	void syncCUDA(std::string title);
 
-	MZoneState *simState;
+	PoissonRegenCells *grs = nullptr;
+	MZoneState *simState = nullptr;
 
 	uint32_t numZones;
 
@@ -69,7 +71,7 @@ private:
 
 	uint32_t curTime;
 
-	void construct(MZoneState *state, int *mzoneRSeed,
+	void construct(std::fstream &psth_file_buf, MZoneState *state, int *mzoneRSeed,
 		int gpuIndStart, int numGPUP2);
 };
 

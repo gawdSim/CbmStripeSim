@@ -17,7 +17,7 @@ public:
 	// objects
 	parsed_sess_file s_file;
 	trials_data td;
-	PoissonRegenCells *grs = nullptr;
+	//PoissonRegenCells *grs = nullptr;
 	MZoneState *sim_state  = nullptr;
 	CBMSimCore *sim_core   = nullptr;
 

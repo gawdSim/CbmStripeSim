@@ -49,7 +49,7 @@ Simulation::Simulation(parsed_commandline &p_cl) {
 Simulation::~Simulation() {
 	if (trials_data_initialized) delete_trials_data(td); // FIXME: this is silly and should be deprecated
 
-	if (grs) delete grs;
+	//if (grs) delete grs;
 	if (sim_state) delete sim_state;
 	if (sim_core) delete sim_core;
 }
@@ -97,15 +97,15 @@ void Simulation::set_plast_modes(std::string pfpc_plast) {
 
 void Simulation::init_sim(std::string in_psth_filename, std::string in_sim_filename) {
 	LOG_DEBUG("Initializing simulation...");
-	std::fstream psth_file_buf(in_psth_filename.c_str(), std::ios::in | std::ios::binary);
-	grs = new PoissonRegenCells(psth_file_buf);
-	psth_file_buf.close();
+	//grs = new PoissonRegenCells(psth_file_buf);
 	std::fstream sim_file_buf(in_sim_filename.c_str(), std::ios::in | std::ios::binary);
 	read_con_params(sim_file_buf);
 	populate_act_params(s_file);
 	sim_state = new MZoneState(num_mzones, sim_file_buf);
-	sim_core  = new CBMSimCore(sim_state, gpu_index, num_gpu);
 	sim_file_buf.close();
+	std::fstream psth_file_buf(in_psth_filename.c_str(), std::ios::in | std::ios::binary);
+	sim_core  = new CBMSimCore(psth_file_buf, sim_state, gpu_index, num_gpu);
+	psth_file_buf.close();
 	sim_initialized = true;
 	LOG_DEBUG("Simulation initialized.");
 }
@@ -133,8 +133,7 @@ void Simulation::run_session() {
 			if (useUS == 1 && ts == onsetUS) {
 				sim_core->updateErrDrive(0, 0.3);
 			}
-			grs->calcGRPoissActivity(ts);
-			
+			sim_core->calcActivity(pf_pc_plast);
 		}
 		trial_end = omp_get_wtime();
 		LOG_INFO("'%s' took %0.2fs", trialName.c_str(), trial_end - trial_start);

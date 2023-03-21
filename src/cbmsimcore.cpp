@@ -13,7 +13,7 @@
 
 CBMSimCore::CBMSimCore() {}
 
-CBMSimCore::CBMSimCore(MZoneState *state,
+CBMSimCore::CBMSimCore(std::fstream &psth_file_buf, MZoneState *state,
 	int gpuIndStart, int numGPUP2)
 {
 	CRandomSFMT0 randGen(time(0));
@@ -24,13 +24,15 @@ CBMSimCore::CBMSimCore(MZoneState *state,
 		mzoneRSeed[i] = randGen.IRandom(0, INT_MAX);
 	}
 
-	construct(state, mzoneRSeed, gpuIndStart, numGPUP2);
+	construct(psth_file_buf, state, mzoneRSeed, gpuIndStart, numGPUP2);
 
 	delete[] mzoneRSeed;
 }
 
 CBMSimCore::~CBMSimCore()
 {
+	if (grs) delete grs;
+
 	for (int i = 0; i < numZones; i++)
 	{
 		delete zones[i];
@@ -129,45 +131,43 @@ void CBMSimCore::syncCUDA(std::string title)
 	}
 }
 
-void CBMSimCore::calcActivity(float spillFrac, enum plasticity pf_pc_plast)
+void CBMSimCore::calcActivity(enum plasticity pf_pc_plast)
 {
 	syncCUDA("1");
 
+	grs->calcGRPoissActivity(curTime, streams, 5);
+
+	//for (int i = 0; i < numZones; i++)
+	//{
+	//	if (pf_pc_plast == GRADED)
+	//	{
+	//		zones[i]->runPFPCPlastCUDA(streams, 1, curTime);
+	//	}
+
+	//	zones[i]->runUpdatePFBCOutCUDA(streams, i+4);
+	//	zones[i]->runUpdatePFSCOutCUDA(streams, i+4);
+	//	zones[i]->runUpdatePFPCOutCUDA(streams, i + 2);
+
+	//	zones[i]->runSumPFBCCUDA(streams, 2);
+	//	zones[i]->runSumPFSCCUDA(streams, 3);
+	//	zones[i]->runSumPFPCCUDA(streams, i + 1);
+	//	
+	//	zones[i]->runSCActivitiesCUDA(streams, i+3);
+	//	zones[i]->runBCActivitiesCUDA(streams, i);
+
+	//	zones[i]->updateBCPCOut();
+	//	zones[i]->updateSCPCOut();
+
+	//	zones[i]->calcPCActivities();
+	//	zones[i]->updatePCOut();
+
+	//	zones[i]->calcNCActivities();
+	//	zones[i]->updateNCOut();
+
+	//	zones[i]->calcIOActivities();
+	//	zones[i]->updateIOOut();
+	//}
 	curTime++;
-
-	//inputNet->runGRActivitiesCUDA(streams, 0);
-	//inputNet->runUpdateGRHistoryCUDA(streams, 4, curTime);
-
-	for (int i = 0; i < numZones; i++)
-	{
-		if (pf_pc_plast == GRADED)
-		{
-			zones[i]->runPFPCPlastCUDA(streams, 1, curTime);
-		}
-
-		zones[i]->runUpdatePFBCOutCUDA(streams, i+4);
-		zones[i]->runUpdatePFSCOutCUDA(streams, i+4);
-		zones[i]->runUpdatePFPCOutCUDA(streams, i + 2);
-
-		zones[i]->runSumPFBCCUDA(streams, 2);
-		zones[i]->runSumPFSCCUDA(streams, 3);
-		zones[i]->runSumPFPCCUDA(streams, i + 1);
-		
-		zones[i]->runSCActivitiesCUDA(streams, i+3);
-		zones[i]->runBCActivitiesCUDA(streams, i);
-
-		zones[i]->updateBCPCOut();
-		zones[i]->updateSCPCOut();
-
-		zones[i]->calcPCActivities();
-		zones[i]->updatePCOut();
-
-		zones[i]->calcNCActivities();
-		zones[i]->updateNCOut();
-
-		zones[i]->calcIOActivities();
-		zones[i]->updateIOOut();
-	}
 }
 
 //void CBMSimCore::updateMFInput(const uint8_t *mfIn)
@@ -206,7 +206,7 @@ MZone** CBMSimCore::getMZoneList()
 	return (MZone **)zones;
 }
 
-void CBMSimCore::construct(MZoneState *state,
+void CBMSimCore::construct(std::fstream &psth_file_buf, MZoneState *state,
 	int *mzoneRSeed, int gpuIndStart, int numGPUP2)
 {
 	int maxNumGPUs;
@@ -247,14 +247,18 @@ void CBMSimCore::construct(MZoneState *state,
 	initCUDAStreams();
 	LOG_DEBUG("Finished initialzing cuda streams.");
 
-	zones = new MZone*[numZones];
+	LOG_DEBUG("Initializing granule cells ...");
+	grs = new PoissonRegenCells(psth_file_buf, streams);
+	LOG_DEBUG("granule cells initialized.");
 
+	LOG_DEBUG("Initializing mzones...");
+	zones = new MZone*[numZones];
 	for (int i = 0; i < numZones; i++)
 	{
 		// same thing for zones as with innet
 		zones[i] = new MZone(state->getMZoneConStateInternal(i),
-			state->getMZoneActStateInternal(i), state->getGRCellPop()->getApBufGR(),
-			state->getGRCellPop()->getApHistGR(), mzoneRSeed[i], this->gpuIndStart, numGPUs);
+			state->getMZoneActStateInternal(i), grs->get_ap_buf_gr_gpu(),
+			grs->get_ap_hist_gr_gpu(), mzoneRSeed[i], this->gpuIndStart, numGPUs);
 	}
 	LOG_DEBUG("Mzone construction complete");
 	initAuxVars();

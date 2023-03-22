@@ -160,7 +160,8 @@ private:
 	float **inputPFPCGPU;
 	size_t *inputPFPCGPUPitch;
 	float **inputSumPFPCMZGPU;
-	float *inputSumPFPCMZH;
+	float **inputSumPFPCMZH;
+	float *inputPFPCSumH;
 
 	uint32_t **apBufGRGPU;
 	uint64_t **histGRGPU;

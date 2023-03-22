@@ -140,6 +140,7 @@ void CBMSimCore::calcActivity(enum plasticity pf_pc_plast, uint32_t ts)
 		}
 		zones[i]->runUpdatePFPCOutCUDA(streams, i + 2);
 		zones[i]->runSumPFPCCUDA(streams, i + 1);
+		zones[i]->cpyPFPCSumCUDA(streams, i);
 
 	//	zones[i]->runUpdatePFBCOutCUDA(streams, i+4);
 	//	zones[i]->runUpdatePFSCOutCUDA(streams, i+4);

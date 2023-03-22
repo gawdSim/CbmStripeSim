@@ -70,6 +70,7 @@ MZone::~MZone()
 		cudaSetDevice(i + gpuIndStart);
 		//free cuda device memory
 		cudaFree(delayMaskGRGPU[i]);
+		cudaFree(gr_pc_con_in_d[i]);
 		cudaFree(pfSynWeightPCGPU[i]);
 		cudaFree(inputPFPCGPU[i]);
 		cudaFree(inputSumPFPCMZGPU[i]);
@@ -77,6 +78,7 @@ MZone::~MZone()
 	}
 
 	delete[] delayMaskGRGPU;
+	delete[] gr_pc_con_in_d;
 	delete[] pfSynWeightPCGPU;
 	delete[] inputPFPCGPU;
 	delete[] inputPFPCGPUPitch;
@@ -150,8 +152,11 @@ void MZone::initCUDA()
 	numSCPerGPU = num_sc / numGPUs;
 	numBCPerGPU = num_bc / numGPUs;
 
-	updatePFPCNumGRPerB = 512;
+	updatePFPCNumGRPerB = 512 * (num_pc > 512) + num_pc * (num_pc <= 512);
 	updatePFPCNumBlocks = numGRPerGPU / updatePFPCNumGRPerB;
+
+	sumPFPCOutNumPCPerB = 1024 * (num_pc > 1024) + num_pc * (num_pc <= 1024);
+	sumPFPCOutNumBlocks = num_pc / sumPFPCOutNumPCPerB;
 
 	updatePFPCSynWNumGRPerB = 512 * (num_p_pc_from_gr_to_pc > 512) +
 			num_p_pc_from_gr_to_pc * (num_p_pc_from_gr_to_pc <= 512);
@@ -194,6 +199,7 @@ void MZone::initCUDA()
 		}
 	}
 
+	gr_pc_con_in_d = new uint32_t*[numGPUs];
 	pfSynWeightPCGPU = new float*[numGPUs];
 	inputPFPCGPU = new float*[numGPUs];
 	inputPFPCGPUPitch = new size_t[numGPUs];
@@ -203,31 +209,34 @@ void MZone::initCUDA()
 	{
 		int cpyStartInd = i * numGRPerGPU;
 		int cpySize     = numGRPerGPU;
+
 		cudaSetDevice(i + gpuIndStart);
 
 		// conduction delay variables
 		cudaMalloc((void **)&delayMaskGRGPU[i], numGRPerGPU * sizeof(uint32_t));
-		// TODO: put the delay mask info into mzoneconnectivitystate
 		cudaMemcpy(delayMaskGRGPU[i], &(cs->pGRDelayMaskfromGRtoBSP[cpyStartInd]),
 			cpySize * sizeof(uint32_t), cudaMemcpyHostToDevice);
+
+		cudaMalloc((void **)&gr_pc_con_in_d[i], numGRPerGPU * sizeof(uint32_t));
+		cudaMemcpy(gr_pc_con_in_d[i], &(cs->pGRfromGRtoPC[cpyStartInd]), cpySize * sizeof(uint32_t), cudaMemcpyHostToDevice);
 
 		//allocate device cuda memory
 		cudaMalloc((void **)&pfSynWeightPCGPU[i], numGRPerGPU * sizeof(float));
 		cudaMallocPitch((void **)&inputPFPCGPU[i], (size_t *)&inputPFPCGPUPitch[i],
-				num_p_pc_from_gr_to_pc * sizeof(float), num_pc / numGPUs);
-		cudaMalloc((void **)&inputSumPFPCMZGPU[i], num_pc / numGPUs * sizeof(float));
+				num_pc * sizeof(float), updatePFPCNumBlocks);
+		cudaMalloc((void **)&inputSumPFPCMZGPU[i], num_pc * sizeof(float));
 
 		cudaDeviceSynchronize();
 		//initialize device cuda memory
 		cudaMemcpy(pfSynWeightPCGPU[i], &pfSynWeightPCLinear[cpyStartInd],
 				numGRPerGPU*sizeof(float), cudaMemcpyHostToDevice);
 
-		for (int j = 0; j < num_pc/numGPUs; j++)
+		for (int j = 0; j < updatePFPCNumBlocks; j++)
 		{
 			cudaMemset(((char *)inputPFPCGPU[i] + j * inputPFPCGPUPitch[i]),
-					0, num_p_pc_from_gr_to_pc * sizeof(float));
+					0, num_pc * sizeof(float));
 		}
-		cudaMemset(inputSumPFPCMZGPU[i], 0, num_pc / numGPUs * sizeof(float));
+		cudaMemset(inputSumPFPCMZGPU[i], 0, num_pc * sizeof(float));
 
 		cudaDeviceSynchronize();
 	}
@@ -399,16 +408,6 @@ void MZone::setErrDrive(float errDriveRelative)
 {
 	as->errDrive = errDriveRelative * maxExtIncVIO;
 }
-
-//void MZone::updateMFActivities(const uint8_t *actMF)
-//{
-//	apMFInput = actMF;
-//}
-
-//void MZone::updateTrueMFs(bool *trueMF)
-//{
-//	isTrueMF = trueMF;
-//}
 
 void MZone::calcPCActivities()
 {
@@ -733,18 +732,20 @@ void MZone::runUpdatePFPCOutCUDA(cudaStream_t **sts, int streamN)
 	{
 		cudaSetDevice(i + gpuIndStart);
 		callUpdatePFPCOutKernel(sts[i][streamN], updatePFPCNumBlocks, updatePFPCNumGRPerB,
-				apBufGRGPU[i], delayMaskGRGPU[i], pfSynWeightPCGPU[i], inputPFPCGPU[i],
-				inputPFPCGPUPitch[i], num_p_pc_from_gr_to_pc_p2);
+				num_pc, apBufGRGPU[i], gr_pc_con_in_d[i], delayMaskGRGPU[i], pfSynWeightPCGPU[i], inputPFPCGPU[i],
+				inputPFPCGPUPitch[i]);
 	}
 }
 
 void MZone::runSumPFPCCUDA(cudaStream_t **sts, int streamN)
 {
-	for (int i = 0; i < numGPUs; i++)
+	cudaError_t error;
+	for (uint32_t i = 0; i < numGPUs; i++)
 	{
-		cudaSetDevice(i + gpuIndStart);
-		callSumKernel<float, true, false>(sts[i][streamN], inputPFPCGPU[i], inputPFPCGPUPitch[i],
-				inputSumPFPCMZGPU[i], 1, num_pc / numGPUs, 1, num_p_pc_from_gr_to_pc);
+		error=cudaSetDevice(i+gpuIndStart);
+		callSumPFPCOutKernel(sts[i][streamN], sumPFPCOutNumBlocks, sumPFPCOutNumPCPerB,
+			  updatePFPCNumBlocks, inputPFPCGPU[i], inputPFPCGPUPitch[i], inputSumPFPCMZGPU[i]);
+		LOG_DEBUG("Last error: %s", cudaGetErrorString(cudaGetLastError()));
 	}
 }
 

@@ -96,17 +96,61 @@ __global__ void updatePFSCOutGPU(uint32_t *apBuf, uint32_t *delay,
 	pfSCRow[tid & (numPFInPerSC-1)] = (apBuf[tid] & delay[tid]) > 0;
 }
 
-__global__ void updatePFPCOutGPU(uint32_t *apBuf, uint32_t *delay,
-		float *synWeight, float *pfPC, size_t pfPCPitch, unsigned int numPFInPerPC, unsigned int numPFInPerPCP2)
+// keep in mind: grConOut has len numGRPerGPU -> contains pc ids that these gr connect to
+// also that now pfPC now has dims (numBlocks, num_pc)
+__global__ void updatePFPCOutGPU(uint32_t *apBuf, uint32_t *grConOut, uint32_t *delay,
+		float *synWeight, float *pfPC, size_t pfPCPitch, uint32_t nWrites)
 {
-	int tid = blockIdx.x * blockDim.x + threadIdx.x;
-	unsigned int tempOut;
-	float *pfPCRow = (float *)((char *)pfPC + (tid >> numPFInPerPCP2) * pfPCPitch);
+	int tid=threadIdx.x;
+	int index=blockIdx.x*blockDim.x+threadIdx.x;
+	uint32_t *pcRow=(uint32_t *)((char *)pfPC+blockIdx.x*pfPCPitch);
 
-	tempOut = (apBuf[tid] & delay[tid]) > 0;
+	uint32_t tempOut;
 
-	pfPCRow[tid & (numPFInPerPC-1)] = synWeight[tid] * tempOut;
+	for (uint32_t i=0; i<nWrites; i++)
+	{
+		sharedIOBufGR[tid+i*blockDim.x]=0;
+	}
+	__syncthreads();
+
+	tempOut = (apBuf[index] & delay[index]) > 0;
+	if (tempOut > 0)
+	{
+		atomicAdd(&sharedIOBufGR[grConOut[index]], synWeight[index]);
+	}
+	__syncthreads();
+
+	for(int i=0; i<nWrites; i++)
+	{
+		pcRow[tid+i*blockDim.x]=sharedIOBufGR[tid+i*blockDim.x];
+	}
+
+
+	//unsigned int tempOut;
+	//float *pfPCRow = (float *)((char *)pfPC + (tid >> numPFInPerPCP2) * pfPCPitch);
+
+	//tempOut = (apBuf[tid] & delay[tid]) > 0;
+
+	//pfPCRow[tid & (numPFInPerPC-1)] = synWeight[tid] * tempOut;
 }
+
+__global__ void sumPFPCOutGPU(unsigned int nRows, float *pcOut, size_t pcOutPitch, float *pcOutSum)
+{
+	unsigned int *pcOutRow;
+	int index=blockIdx.x*blockDim.x+threadIdx.x;
+	unsigned int tempSum;
+
+	tempSum=0;
+	for(int i=0; i<nRows; i++)
+	{
+		pcOutRow=(unsigned int *)((char *)pcOut+i*pcOutPitch);
+
+		tempSum+=pcOutRow[index];
+	}
+	pcOutSum[index]=tempSum;
+}
+
+
 
 //**---------------end GR Kernels-------------------**
 
@@ -483,7 +527,6 @@ void callIOActKernel(cudaStream_t &st, unsigned int numBlocks, unsigned int numI
 		threshRestIO, threshMaxIO, threshDecayIO);
 }
 
-
 template<typename Type, bool inMultiP, bool outMultiP>
 void callSumKernel(cudaStream_t &st, Type *inGPU, size_t inGPUP, Type *outSumGPU, size_t outSumGPUP,
 		unsigned int nOutCells, unsigned int nOutCols, unsigned int rowLength)
@@ -544,11 +587,17 @@ void callUpdatePFSCOutKernel(cudaStream_t &st, unsigned int numBlocks, unsigned 
 }
 
 void callUpdatePFPCOutKernel(cudaStream_t &st, unsigned int numBlocks, unsigned int numGRPerBlock,
-		uint32_t *apBufGPU, uint32_t *delayMaskGPU, float *pfPCSynWGPU, float *inPFPCGPU,
-		size_t inPFPCGPUPitch, unsigned int numPFInPerPCP2)
+		uint32_t numPC, uint32_t *apBufGPU, uint32_t *grOutConGPU, uint32_t *delayMaskGPU, float *pfPCSynWGPU,
+		float *inPFPCGPU, size_t inPFPCGPUPitch)
 {
-	updatePFPCOutGPU<<<numBlocks, numGRPerBlock, 0, st>>>(apBufGPU, delayMaskGPU, pfPCSynWGPU,
-			inPFPCGPU, inPFPCGPUPitch, 1<<numPFInPerPCP2, numPFInPerPCP2);
+	updatePFPCOutGPU<<<numBlocks, numGRPerBlock, numPC * sizeof(uint32_t), st>>>(apBufGPU, grOutConGPU, delayMaskGPU,
+		pfPCSynWGPU, inPFPCGPU, inPFPCGPUPitch, numPC / numGRPerBlock);
+}
+
+void callSumPFPCOutKernel(cudaStream_t &st, unsigned int numBlocks, unsigned int numPCPerBlock,
+		unsigned int numPFPCOutRows, float *grInPCGPU,  size_t pfInPCGPUPitch, float *pfInPCSGPU)
+{
+	sumPFPCOutGPU<<<numBlocks, numPCPerBlock, 0, st>>>(numPFPCOutRows, grInPCGPU, pfInPCGPUPitch, pfInPCSGPU);
 }
 
 void callUpdateGRHistKernel(cudaStream_t &st, unsigned int numBlocks, unsigned int numGRPerBlock,

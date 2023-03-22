@@ -24,8 +24,8 @@ public:
 
 	//granule cells
 	uint32_t *pGRDelayMaskfromGRtoBSP;
-	uint32_t **pGRfromGRtoPC; // index on gr side of what pc that gr connects to
-	uint32_t **pPCfromGRtoPC;
+	uint32_t *pGRfromGRtoPC; // index on gr side of what pc that gr connects to
+	uint32_t **pPCfromGRtoPC; // index on pc side of what gr that pc gets input from
 
 	//basket cells
 	uint32_t **pBCfromBCtoPC;

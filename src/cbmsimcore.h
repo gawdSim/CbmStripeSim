@@ -37,9 +37,6 @@ public:
 	~CBMSimCore();
 
 	void calcActivity(enum plasticity pf_pc_plast, uint32_t ts);
-	//void updateMFInput(const uint8_t *mfIn);
-	//void updateTrueMFs(bool *isTrueMF);
-	//void updateGRStim(int startGRStim, int numGRStim);
 	void updateErrDrive(unsigned int zoneN, float errDriveRelative);
 
 	void writeToState();

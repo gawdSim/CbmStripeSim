@@ -132,20 +132,20 @@ void CBMSimCore::calcActivity(enum plasticity pf_pc_plast, uint32_t ts)
 
 	grs->calcGRPoissActivity(ts, streams, 5);
 
-	//for (int i = 0; i < numZones; i++)
-	//{
-	//	if (pf_pc_plast == GRADED)
-	//	{
-	//		zones[i]->runPFPCPlastCUDA(streams, 1, ts);
-	//	}
+	for (int i = 0; i < numZones; i++)
+	{
+		if (pf_pc_plast == GRADED)
+		{
+			zones[i]->runPFPCPlastCUDA(streams, 1, ts);
+		}
+		zones[i]->runUpdatePFPCOutCUDA(streams, i + 2);
+		zones[i]->runSumPFPCCUDA(streams, i + 1);
 
 	//	zones[i]->runUpdatePFBCOutCUDA(streams, i+4);
 	//	zones[i]->runUpdatePFSCOutCUDA(streams, i+4);
-	//	zones[i]->runUpdatePFPCOutCUDA(streams, i + 2);
 
 	//	zones[i]->runSumPFBCCUDA(streams, 2);
 	//	zones[i]->runSumPFSCCUDA(streams, 3);
-	//	zones[i]->runSumPFPCCUDA(streams, i + 1);
 	//	
 	//	zones[i]->runSCActivitiesCUDA(streams, i+3);
 	//	zones[i]->runBCActivitiesCUDA(streams, i);
@@ -161,34 +161,8 @@ void CBMSimCore::calcActivity(enum plasticity pf_pc_plast, uint32_t ts)
 
 	//	zones[i]->calcIOActivities();
 	//	zones[i]->updateIOOut();
-	//}
+	}
 }
-
-//void CBMSimCore::updateMFInput(const uint8_t *mfIn)
-//{
-//	inputNet->updateMFActivties(mfIn);
-//
-//	for (int i = 0; i < numZones; i++)
-//	{
-//		zones[i]->updateMFActivities(mfIn);
-//	}
-//}
-
-//void CBMSimCore::updateTrueMFs(bool *isTrueMF)
-//{
-//
-//	for (int i = 0; i < numZones; i++)
-//	{
-//			zones[i]->updateTrueMFs(isTrueMF);
-//	}
-//}
-
-//void CBMSimCore::updateGRStim(int startGRStim_, int numGRStim_)
-//{
-//	isGRStim 		  = true;
-//	this->numGRStim   = numGRStim_;
-//	this->startGRStim = startGRStim_;
-//}
 
 void CBMSimCore::updateErrDrive(unsigned int zoneN, float errDriveRelative)
 {

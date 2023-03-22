@@ -25,8 +25,6 @@ public:
 	void cpyPFPCSynWCUDA();
 
 	void setErrDrive(float errDriveRelative);
-	//void updateMFActivities(const uint8_t *actMF);
-	//void updateTrueMFs(bool *trueMF);
 
 	void calcPCActivities();
 	void runSCActivitiesCUDA(cudaStream_t **sts, int streamN);
@@ -96,6 +94,9 @@ private:
 	unsigned int updatePFPCNumGRPerB;
 	unsigned int updatePFPCNumBlocks;
 
+	uint32_t sumPFPCOutNumPCPerB;
+	uint32_t sumPFPCOutNumBlocks;
+
 	unsigned int updatePFPCSynWNumGRPerB;
 	unsigned int updatePFPCSynWNumBlocks;
 
@@ -115,11 +116,6 @@ private:
 	unsigned int sumGRBCOutNumBCPerB;
 	unsigned int sumGRBCOutNumBlocks;
 	/* ======== not used ====== */
-
-	//mossy fiber variables
-	//const uint8_t *apMFInput;
-	//const uint8_t *histMFInput;
-	//bool *isTrueMF;
 
 	//stellate cell variables
 	//host variables
@@ -156,6 +152,9 @@ private:
 	//end basket cell variables
 
 	//purkinje cell variables
+
+	uint32_t **gr_pc_con_in_d;
+
 	float **pfSynWeightPCGPU;
 	float *pfSynWeightPCLinear;
 	float **inputPFPCGPU;

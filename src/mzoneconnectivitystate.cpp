@@ -26,7 +26,9 @@ MZoneConnectivityState::MZoneConnectivityState(int randSeed)
 	LOG_DEBUG("Assigning GR delays");
 	assignGRDelays();
 	LOG_DEBUG("Connecting GR to PC");
-	connectGRtoPC(randGen);
+	connectGRtoPC();
+	LOG_DEBUG("Connecting GR to BC");
+	connectGRtoBC();
 	LOG_DEBUG("Connecting BC to PC");
 	connectBCtoPC();
 	LOG_DEBUG("Connecting PC to BC");
@@ -68,7 +70,7 @@ void MZoneConnectivityState::allocateMemory()
 	pGRDelayMaskfromGRtoBSP = new uint32_t[num_gr];
 
 	pGRfromGRtoPC = new uint32_t[num_gr]();
-	pPCfromGRtoPC = allocate2DArray<uint32_t>(num_pc, num_p_pc_from_gr_to_pc);
+	pGRfromGRtoBC = new uint32_t[num_gr]();
 
 	//basket cells
 	pBCfromBCtoPC  = allocate2DArray<uint32_t>(num_bc, num_p_bc_from_bc_to_pc);
@@ -143,7 +145,7 @@ void MZoneConnectivityState::deallocMemory()
 	delete[] pGRDelayMaskfromGRtoBSP;
 
 	delete[] pGRfromGRtoPC;
-	delete2DArray<uint32_t>(pPCfromGRtoPC);
+	delete[] pGRfromGRtoBC;
 
 	// basket cells
 	delete2DArray<uint32_t>(pBCfromBCtoPC);
@@ -217,22 +219,20 @@ void MZoneConnectivityState::assignGRDelays()
 }
 
 //TODO: TEST
-void MZoneConnectivityState::connectGRtoPC(CRandomSFMT0 &randGen)
-{
+void MZoneConnectivityState::connectGRtoPC() {
 	for (uint32_t i = 0; i < num_gr; i++) {
 		pGRfromGRtoPC[i] = i % num_pc;
 	}
 	fisher_yates_shuffle<uint32_t>(pGRfromGRtoPC, num_gr);
-	//for (uint32_t i = 0; i < num_pc; i++)
-	//{
-	//	for (uint32_t j = 0; j < num_p_pc_from_gr_to_pc; j++)
-	//	{
-	//		pPCfromGRtoPC[i][j] = i * num_p_pc_from_gr_to_pc + j;
-	//	}
-	//}
-	//// shuffle every element of the connectivity array
-	//fisher_yates_shuffle<uint32_t>(pPCfromGRtoPC[0], num_pc * num_p_pc_from_gr_to_pc);
 }
+
+void MZoneConnectivityState::connectGRtoBC() {
+	for (uint32_t i = 0; i < num_gr; i++) {
+		pGRfromGRtoBC[i] = i % num_bc;
+	}
+	fisher_yates_shuffle<uint32_t>(pGRfromGRtoBC, num_gr);
+}
+
 
 void MZoneConnectivityState::connectBCtoPC()
 {

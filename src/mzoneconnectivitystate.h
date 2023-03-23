@@ -25,7 +25,7 @@ public:
 	//granule cells
 	uint32_t *pGRDelayMaskfromGRtoBSP;
 	uint32_t *pGRfromGRtoPC; // index on gr side of what pc that gr connects to
-	uint32_t **pPCfromGRtoPC; // index on pc side of what gr that pc gets input from
+	uint32_t *pGRfromGRtoBC; // index on gr side of what bc that gr connects to
 
 	//basket cells
 	uint32_t **pBCfromBCtoPC;
@@ -58,7 +58,8 @@ private:
 	void stateRW(bool read, std::fstream &file);
 
 	void assignGRDelays();
-	void connectGRtoPC(CRandomSFMT0 &randGen);
+	void connectGRtoPC();
+	void connectGRtoBC();
 	void connectBCtoPC();
 	void connectPCtoBC();
 	void connectSCtoPC();

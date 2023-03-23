@@ -900,7 +900,6 @@ void MZone::cpyPFSCSumCUDA(cudaStream_t **sts, int streamN)
 		cudaSetDevice(i+gpuIndStart);
 		cudaMemcpyAsync(inputSumPFSCMZH[i], inputSumPFSCGPU[i], num_sc * sizeof(uint32_t),
 			cudaMemcpyDeviceToHost, sts[i][streamN]);
-		LOG_DEBUG("Last error: %s", cudaGetErrorString(cudaGetLastError()));
 	}
 }
 

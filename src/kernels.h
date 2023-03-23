@@ -70,8 +70,8 @@ void callUpdatePFBCOutKernel(cudaStream_t &st, unsigned int numBlocks, unsigned 
 		size_t inPFBCGPUPitch);
 
 void callUpdatePFSCOutKernel(cudaStream_t &st, unsigned int numBlocks, unsigned int numGRPerBlock,
-		uint32_t *apBufGPU, uint32_t *delayMaskGPU, uint32_t *inPFSCGPU, size_t inPFSCGPUPitch,
-		unsigned int numPFInPerSCP2);
+		uint32_t numSC, uint32_t *apBufGPU, uint32_t *grOutConGPU, uint32_t *delayMaskGPU, uint32_t *inPFSCGPU,
+		size_t inPFSCGPUPitch);
 
 void callUpdatePFPCOutKernel(cudaStream_t &st, unsigned int numBlocks, unsigned int numGRPerBlock,
 		uint32_t numPC, uint32_t *apBufGPU, uint32_t *grOutConGPU, uint32_t *delayMaskGPU, float *pfPCSynWGPU,

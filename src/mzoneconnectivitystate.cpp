@@ -71,6 +71,7 @@ void MZoneConnectivityState::allocateMemory()
 
 	pGRfromGRtoPC = new uint32_t[num_gr]();
 	pGRfromGRtoBC = new uint32_t[num_gr]();
+	pGRfromGRtoSC = new uint32_t[num_gr]();
 
 	//basket cells
 	pBCfromBCtoPC  = allocate2DArray<uint32_t>(num_bc, num_p_bc_from_bc_to_pc);
@@ -146,6 +147,7 @@ void MZoneConnectivityState::deallocMemory()
 
 	delete[] pGRfromGRtoPC;
 	delete[] pGRfromGRtoBC;
+	delete[] pGRfromGRtoSC;
 
 	// basket cells
 	delete2DArray<uint32_t>(pBCfromBCtoPC);
@@ -233,6 +235,12 @@ void MZoneConnectivityState::connectGRtoBC() {
 	fisher_yates_shuffle<uint32_t>(pGRfromGRtoBC, num_gr);
 }
 
+void MZoneConnectivityState::connectGRtoSC() {
+	for (uint32_t i = 0; i < num_gr; i++) {
+		pGRfromGRtoSC[i] = i % num_sc;
+	}
+	fisher_yates_shuffle<uint32_t>(pGRfromGRtoSC, num_gr);
+}
 
 void MZoneConnectivityState::connectBCtoPC()
 {

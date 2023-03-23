@@ -28,6 +28,7 @@ public:
 
 	void calcPCActivities();
 	void calcBCActivities();
+	void calcSCActivities();
 	//void runSCActivitiesCUDA(cudaStream_t **sts, int streamN);
 	//void runBCActivitiesCUDA(cudaStream_t **sts, int streamN);
 	void calcIOActivities();
@@ -47,6 +48,7 @@ public:
 	void runPFPCPlastCUDA(cudaStream_t **sts, int streamN, uint32_t t);
 
 	void runSumPFSCCUDA(cudaStream_t **sts, int streamN);
+	void cpyPFSCSumCUDA(cudaStream_t **sts, int streamN);
 
 	void runUpdatePFBCOutCUDA(cudaStream_t **sts, int streamN);
 	void runUpdatePFSCOutCUDA(cudaStream_t **sts, int streamN);
@@ -104,6 +106,11 @@ private:
 	uint32_t sumPFBCOutNumBCPerB;
 	uint32_t sumPFBCOutNumBlocks;
 
+	uint32_t updatePFSCNumGRPerB; 
+	uint32_t updatePFSCNumBlocks;
+
+	uint32_t sumPFSCOutNumSCPerB;
+	uint32_t sumPFSCOutNumBlocks;
 
 	unsigned int updatePFPCSynWNumGRPerB;
 	unsigned int updatePFPCSynWNumBlocks;
@@ -127,13 +134,18 @@ private:
 
 	//stellate cell variables
 	//host variables
+	uint32_t **inputSumPFSCMZH;
+	uint32_t *inputSumPFSCH;
+
 	uint8_t **apSCGPU;
 	uint32_t **apBufSCGPU;
 	float **gPFSCGPU;
 	float **threshSCGPU;
 	float **vSCGPU;
+
+	uint32_t **gr_sc_con_in_d;
 	uint32_t **inputPFSCGPU;
-	size_t *inputPFSCGPUP;
+	size_t *inputPFSCGPUPitch;
 	uint32_t **inputSumPFSCGPU;
 	//end gpu related variables
 	//end stellate cell variables

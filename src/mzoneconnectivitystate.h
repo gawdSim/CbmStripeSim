@@ -26,6 +26,7 @@ public:
 	uint32_t *pGRDelayMaskfromGRtoBSP;
 	uint32_t *pGRfromGRtoPC; // index on gr side of what pc that gr connects to
 	uint32_t *pGRfromGRtoBC; // index on gr side of what bc that gr connects to
+	uint32_t *pGRfromGRtoSC; // index on gr side of what sc that gr connects to
 
 	//basket cells
 	uint32_t **pBCfromBCtoPC;
@@ -60,6 +61,7 @@ private:
 	void assignGRDelays();
 	void connectGRtoPC();
 	void connectGRtoBC();
+	void connectGRtoSC();
 	void connectBCtoPC();
 	void connectPCtoBC();
 	void connectSCtoPC();

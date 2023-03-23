@@ -110,14 +110,36 @@ __global__ void updatePFBCOutGPU(uint32_t *apBuf, uint32_t *grConOut, uint32_t *
 	//pfBCRow[tid & (numPFInPerBC-1)] = (apBuf[tid] & delay[tid]) > 0;
 }
 
-
-__global__ void updatePFSCOutGPU(uint32_t *apBuf, uint32_t *delay,
-		uint32_t *pfSC, size_t pfSCPitch, unsigned int numPFInPerSC, unsigned int numPFInPerSCP2)
+__global__ void updatePFSCOutGPU(uint32_t *apBuf, uint32_t *grConOut, uint32_t *delay,
+	uint32_t *pfSC, size_t pfSCPitch, uint32_t nWrites)
 {
-	int tid = blockIdx.x * blockDim.x + threadIdx.x;
-	unsigned int *pfSCRow = (uint32_t *)((char *)pfSC + (tid >> numPFInPerSCP2) * pfSCPitch);
+	int tid=threadIdx.x;
+	int index=blockIdx.x*blockDim.x+threadIdx.x;
+	uint32_t *scRow=(uint32_t *)((char *)pfSC+blockIdx.x*pfSCPitch);
 
-	pfSCRow[tid & (numPFInPerSC-1)] = (apBuf[tid] & delay[tid]) > 0;
+	uint32_t tempOut;
+
+	for (uint32_t i=0; i<nWrites; i++)
+	{
+		sharedIOBufGR[tid+i*blockDim.x]=0;
+	}
+	__syncthreads();
+
+	tempOut = (apBuf[index] & delay[index]) > 0;
+	if (tempOut > 0)
+	{
+		atomicAdd(&sharedIOBufGR[grConOut[index]], 1);
+	}
+	__syncthreads();
+
+	for(int i=0; i<nWrites; i++)
+	{
+		scRow[tid+i*blockDim.x]=sharedIOBufGR[tid+i*blockDim.x];
+	}
+	//int tid = blockIdx.x * blockDim.x + threadIdx.x;
+	//unsigned int *pfSCRow = (uint32_t *)((char *)pfSC + (tid >> numPFInPerSCP2) * pfSCPitch);
+
+	//pfSCRow[tid & (numPFInPerSC-1)] = (apBuf[tid] & delay[tid]) > 0;
 }
 
 // keep in mind: grConOut has len numGRPerGPU -> contains pc ids that these gr connect to
@@ -620,11 +642,11 @@ void callUpdatePFBCOutKernel(cudaStream_t &st, unsigned int numBlocks, unsigned 
 }
 
 void callUpdatePFSCOutKernel(cudaStream_t &st, unsigned int numBlocks, unsigned int numGRPerBlock,
-		uint32_t *apBufGPU, uint32_t *delayMaskGPU, uint32_t *inPFSCGPU, size_t inPFSCGPUPitch,
-		unsigned int numPFInPerSCP2)
+		uint32_t numSC, uint32_t *apBufGPU, uint32_t *grOutConGPU, uint32_t *delayMaskGPU, uint32_t *inPFSCGPU,
+		size_t inPFSCGPUPitch)
 {
-	updatePFSCOutGPU<<<numBlocks, numGRPerBlock, 0, st>>>(apBufGPU, delayMaskGPU,
-			inPFSCGPU, inPFSCGPUPitch, 1<<numPFInPerSCP2, numPFInPerSCP2);
+	updatePFSCOutGPU<<<numBlocks, numGRPerBlock, numSC * sizeof(uint32_t), st>>>(apBufGPU, grOutConGPU,
+		delayMaskGPU, inPFSCGPU, inPFSCGPUPitch, numSC / numGRPerBlock);
 }
 
 void callUpdatePFPCOutKernel(cudaStream_t &st, unsigned int numBlocks, unsigned int numGRPerBlock,

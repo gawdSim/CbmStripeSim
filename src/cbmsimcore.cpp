@@ -172,9 +172,13 @@ void CBMSimCore::updateErrDrive(unsigned int zoneN, float errDriveRelative)
 	zones[zoneN]->setErrDrive(errDriveRelative);
 }
 
+PoissonRegenCells* CBMSimCore::getGRRRRRRRs() {
+	return grs;
+}
+
 MZone** CBMSimCore::getMZoneList()
 {
-	return (MZone **)zones;
+	return zones;
 }
 
 void CBMSimCore::construct(std::fstream &psth_file_buf, MZoneState *state,

@@ -3,6 +3,7 @@
 
 #include "logger.h"
 #include "file_utility.h"
+#include "dynamic2darray.h"
 #include "connectivityparams.h"
 #include "activityparams.h"
 #include "simulation.h"
@@ -42,6 +43,9 @@ Simulation::Simulation(parsed_commandline &p_cl) {
 		}
 		data_out_dir_created = true;
 		create_out_sim_filename(); 
+		create_rast_or_psth_filenames(p_cl.raster_files, RASTER); //optional
+		create_rast_or_psth_filenames(p_cl.psth_files, PSTH); //optional
+		create_weights_filenames(p_cl.weights_files); //optional
 		init_sim(p_cl.input_psth_file, p_cl.input_sim_file);
 	}
 }
@@ -113,15 +117,199 @@ void Simulation::create_weights_filenames(std::map<std::string, bool> &weights_m
 							   + BIN_EXT;
 			pfpc_weights_filenames_created = true; // only useful so far for gui...
 		}
-		if (weights_map["MFNC"])
+	}
+}
+
+void Simulation::init_rast_cell_nums()
+{
+	rast_cell_nums[GR] = num_gr; 
+	rast_cell_nums[BC] = num_bc;
+	rast_cell_nums[SC] = num_sc;
+	rast_cell_nums[PC] = num_pc;
+	rast_cell_nums[IO] = num_io;
+	rast_cell_nums[NC] = num_nc;
+}
+
+void Simulation::init_cell_spikes()
+{
+	for (uint32_t i; i < num_mzones; i++) {
+		/* NOTE: incurs a call to cudaMemcpy from device to host,
+		 * but initializing so is not repeatedly called */
+		cell_spikes[GR] = sim_core->getGRRRRRRRs()->getGRAPs(); 
+		cell_spikes[BC] = sim_core->getMZoneList()[i]->exportAPBC(); 
+		cell_spikes[SC] = sim_core->getMZoneList()[i]->exportAPSC();
+		cell_spikes[PC] = sim_core->getMZoneList()[i]->exportAPPC();
+		cell_spikes[IO] = sim_core->getMZoneList()[i]->exportAPIO();
+		cell_spikes[NC] = sim_core->getMZoneList()[i]->exportAPNC();
+	}
+}
+
+void Simulation::init_rasts()
+{
+	for (uint32_t i = 0; i < NUM_CELL_TYPES; i++)
+	{
+		if (!rf_names[i].empty())
 		{
-			mfnc_weights_file = data_out_path + "/" + data_out_base_name
-							   + "_MFNC_WEIGHTS_" + get_current_time_as_string("%m%d%Y")
-							   + BIN_EXT;
-			mfnc_weights_filenames_created = true; // only useful so far for gui...
+			/* granules are saved every trial, so their raster size is msMeasure  x num_gr */
+			uint32_t row_size = (CELL_IDS[i] == "GR") ? ms_measure : ms_measure * td.num_trials;
+			rasters[i] = allocate2DArray<uint8_t>(row_size, rast_cell_nums[i]);
+		}
+	}
+	raster_arrays_initialized = true;
+}
+
+void Simulation::init_psths()
+{
+	for (uint32_t i = 0; i < NUM_CELL_TYPES; i++)
+	{
+		if (!pf_names[i].empty())
+			// TODO: make data type bigger for psth
+			psths[i] = allocate2DArray<uint8_t>(ms_measure, rast_cell_nums[i]);
+	}
+	psth_arrays_initialized = true;
+}
+
+void Simulation::init_rast_save_funcs()
+{
+	for (uint32_t i = 0; i < NUM_CELL_TYPES; i++)
+	{
+		rast_save_funcs[i] = [this, i]()
+		{
+			if (!rf_names[i].empty() && CELL_IDS[i] != "GR")
+			{
+				uint32_t row_size = (CELL_IDS[i] == "GR") ? this->ms_measure : this->ms_measure * this->td.num_trials;
+				LOG_DEBUG("Saving %s raster to file...", CELL_IDS[i].c_str());
+				write2DArray<uint8_t>(rf_names[i], this->rasters[i], row_size, this->rast_cell_nums[i]);
+			}
+		};
+	}
+}
+
+
+void Simulation::init_psth_save_funcs()
+{
+	for (uint32_t i = 0; i < NUM_CELL_TYPES; i++)
+	{
+		psth_save_funcs[i] = [this, i]()
+		{
+			if (!pf_names[i].empty())
+			{
+				LOG_DEBUG("Saving %s psth to file...", CELL_IDS[i].c_str());
+				write2DArray<uint8_t>(pf_names[i], this->psths[i], this->ms_measure, this->rast_cell_nums[i]);
+			}
+		};
+	}
+}
+
+void Simulation::fill_rasts(uint32_t rast_ctr, uint32_t psth_ctr)
+{
+	for (uint32_t i = 0; i < NUM_CELL_TYPES; i++)
+	{
+		uint32_t temp_counter = rast_ctr;
+		if (!rf_names[i].empty())
+		{
+			/* GR spikes are only spikes not saved on host every time step:
+			 * InNet::exportAPGR makes cudaMemcpy call before returning pointer to mem address */
+			if (CELL_IDS[i] == "GR")
+			{
+				cell_spikes[i] = sim_core->getGRRRRRRRs()->getGRAPs(); 
+				temp_counter = psth_ctr;
+			}
+			for (uint32_t j = 0; j < rast_cell_nums[i]; j++)
+			{
+				rasters[i][temp_counter][j] = cell_spikes[i][j];
+			}
 		}
 	}
 }
+
+void Simulation::fill_psths(uint32_t psth_ctr)
+{
+	for (uint32_t i = 0; i < NUM_CELL_TYPES; i++)
+	{
+		if (!pf_names[i].empty())
+		{
+			/* GR spikes are only spikes not saved on host every time step:
+			 * InNet::exportAPGR makes cudaMemcpy call before returning pointer to mem address */
+			if (CELL_IDS[i] == "GR")
+			{
+				cell_spikes[i] = sim_core->getGRRRRRRRs()->getGRAPs(); 
+			}
+			for (uint32_t j = 0; j < rast_cell_nums[i]; j++)
+			{
+				psths[i][psth_ctr][j] += cell_spikes[i][j];
+			}
+		}
+	}
+}
+
+void Simulation::save_sim()
+{
+	if (out_sim_filename_created)
+	{
+		LOG_DEBUG("Saving simulation to file...");
+		std::fstream outSimFileBuffer(out_sim_name.c_str(), std::ios::out | std::ios::binary);
+		write_con_params(outSimFileBuffer);
+		if (!sim_core) sim_state->writeState(outSimFileBuffer);
+		else sim_core->writeState(outSimFileBuffer);
+		outSimFileBuffer.close();
+		LOG_DEBUG("simulation save to file %s.", out_sim_name.c_str());
+	}
+}
+
+void Simulation::save_gr_rast()
+{
+	if (!rf_names[GR].empty())
+	{
+		std::string trial_raster_name = data_out_path + "/" + get_file_basename(rf_names[GR])
+									  + "_trial_" + std::to_string(trial) + BIN_EXT;
+		LOG_DEBUG("Saving granule raster to file...");
+		write2DArray<uint8_t>(trial_raster_name, rasters[GR], num_gr, ms_measure);
+	}
+}
+
+void Simulation::save_rasts()
+{
+	for (uint32_t i = 0; i < NUM_CELL_TYPES; i++)
+	{
+		if (!rf_names[i].empty())
+			rast_save_funcs[i]();
+	}
+}
+
+void Simulation::save_psths()
+{
+	for (uint32_t i = 0; i < NUM_CELL_TYPES; i++)
+	{
+		if (!pf_names[i].empty())
+			psth_save_funcs[i]();
+	}
+}
+
+void Simulation::save_pfpc_weights(int32_t trial)
+{
+	if (pfpc_weights_filenames_created)
+	{
+		if (trial != -1) // nonnegative indicates we want to append the trial to the file basename
+		{
+			pfpc_weights_file = data_out_path + "/" + get_file_basename(pfpc_weights_file)
+									   + "_TRIAL_" + std::to_string(trial) + BIN_EXT;
+		}
+		LOG_DEBUG("Saving granule to purkinje weights to file...");
+		if (!sim_core)
+		{
+			LOG_ERROR("Trying to write uninitialized weights to file.");
+			LOG_ERROR("(Hint: Try initializing a sim or loading the weights first.)");
+			return;
+		}
+		const float *pfpc_weights = sim_core->getMZoneList()[0]->exportPFPCWeights();
+		std::fstream outPFPCFileBuffer(pfpc_weights_file.c_str(), std::ios::out | std::ios::binary);
+		rawBytesRW((char *)pfpc_weights, num_gr * sizeof(float), false, outPFPCFileBuffer);
+		outPFPCFileBuffer.close();
+	}
+}
+
+
 
 void Simulation::build_sim() {
 	if (!sim_state) sim_state = new MZoneState(num_mzones);
@@ -163,6 +351,12 @@ void Simulation::init_sim(std::string in_psth_filename, std::string in_sim_filen
 	std::fstream psth_file_buf(in_psth_filename.c_str(), std::ios::in | std::ios::binary);
 	sim_core  = new CBMSimCore(psth_file_buf, sim_state, gpu_index, num_gpu);
 	psth_file_buf.close();
+	init_rast_cell_nums();
+	init_cell_spikes();
+	init_rasts(); 
+	init_psths();
+	init_rast_save_funcs();
+	init_psth_save_funcs();
 	sim_initialized = true;
 	LOG_DEBUG("Simulation initialized.");
 }
@@ -198,19 +392,5 @@ void Simulation::run_session() {
 	}
 	session_end = omp_get_wtime();
 	LOG_INFO("Session finished. took %0.2fs", session_end - session_start);
-}
-
-void Simulation::save_sim()
-{
-	if (out_sim_filename_created)
-	{
-		LOG_DEBUG("Saving simulation to file...");
-		std::fstream outSimFileBuffer(out_sim_name.c_str(), std::ios::out | std::ios::binary);
-		write_con_params(outSimFileBuffer);
-		if (!sim_core) sim_state->writeState(outSimFileBuffer);
-		else sim_core->writeState(outSimFileBuffer);
-		outSimFileBuffer.close();
-		LOG_DEBUG("simulation save to file %s.", out_sim_name.c_str());
-	}
 }
 

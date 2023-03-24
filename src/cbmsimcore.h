@@ -42,6 +42,7 @@ public:
 	void writeToState();
 	void writeState(std::fstream& outfile);
 
+	PoissonRegenCells* getGRRRRRRRs();
 	MZone** getMZoneList();
 
 protected:

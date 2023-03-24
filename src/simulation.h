@@ -8,13 +8,13 @@
 #include "mzonestate.h"
 #include "cbmsimcore.h"
 
-#define NUM_CELL_TYPES 8
+#define NUM_CELL_TYPES 6
 #define NUM_WEIGHTS_TYPES 2
 
-enum cell_id {MF, GR, GO, BC, SC, PC, IO, NC};
+enum cell_id {GR, BC, SC, PC, IO, NC};
 
 // convenience array for getting string representations of the cell ids
-const std::string CELL_IDS[NUM_CELL_TYPES] = {"MF", "GR", "GO", "BC", "SC", "PC", "IO", "NC"}; 
+const std::string CELL_IDS[NUM_CELL_TYPES] = {"GR", "BC", "SC", "PC", "IO", "NC"}; 
 
 enum datatype {RASTER, PSTH};
 
@@ -37,7 +37,6 @@ public:
 	bool psth_filenames_created    = false;
 
 	bool pfpc_weights_filenames_created = false;
-	bool mfnc_weights_filenames_created = false;
 
 	bool trials_data_initialized  = false;
 	bool sim_initialized          = false;
@@ -72,6 +71,7 @@ public:
 
 	enum plasticity pf_pc_plast;
 
+	const uint8_t *cell_spikes[NUM_CELL_TYPES];
 	uint32_t rast_cell_nums[NUM_CELL_TYPES];
 	uint8_t **rasters[NUM_CELL_TYPES];
 	uint8_t **psths[NUM_CELL_TYPES];
@@ -86,25 +86,23 @@ public:
 	void create_weights_filenames(std::map<std::string, bool> &weights_map);
 
 	// data initialization
-	void initialize_rast_cell_nums();
-	void initialize_cell_spikes();
-	void initialize_spike_sums();
-	void initialize_rasters(); 
-	void initialize_psth_save_funcs();
-	void initialize_raster_save_funcs();
-
-	void initialize_psths();
+	void init_rast_cell_nums();
+	void init_cell_spikes();
+	void init_rasts(); 
+	void init_psths();
+	void init_rast_save_funcs();
+	void init_psth_save_funcs();
 
 	// filling data
-	void fill_rasters(uint32_t raster_counter, uint32_t psth_counter);
-	void fill_psths(uint32_t psth_counter);
+	void fill_rasts(uint32_t rast_ctr, uint32_t psth_ctr);
+	void fill_psths(uint32_t psth_ctr);
 
 	// saving data
 	void save_sim();
-	void save_weights();
-	void save_gr_raster();
-	void save_rasters();
+	void save_gr_rast();
+	void save_rasts();
 	void save_psths();
+	void save_pfpc_weights(int32_t trial = -1);
 
 	// initializing in build or run mode, and building and running
 	void build_sim();

@@ -64,6 +64,64 @@ void Simulation::create_out_sim_filename() {
 	}
 }
 
+void Simulation::create_rast_or_psth_filenames(std::map<std::string, bool> &data_map, enum datatype data_type)
+{
+	if (data_out_dir_created)
+	{
+		std::string data_out_id = "";
+		std::string *names_ptr;
+		bool *created_ptr;
+		switch (data_type) {
+		   case RASTER:
+			  data_out_id = "_RAST_";
+			  names_ptr = rf_names;
+			  created_ptr = &raster_filenames_created;
+			  break;
+			case PSTH:
+			  data_out_id = "_PSTH_";
+			  names_ptr = pf_names;
+			  created_ptr = &psth_filenames_created;
+			  break;
+			default:
+			  LOG_DEBUG("Something has gone terribly wrong.");
+			  exit(1);
+			  // something has gone terribly wrong
+		}
+		for (uint32_t i = 0; i < NUM_CELL_TYPES; i++)
+		{
+			std::string cell_id = CELL_IDS[i];
+			if (data_map[cell_id])
+			{
+				names_ptr[i] = data_out_path + "/" + data_out_base_name
+											+ "_" + cell_id + data_out_id
+											+ get_current_time_as_string("%m%d%Y")
+											+ BIN_EXT;
+			}
+		}
+		*created_ptr = true;
+	}
+}
+
+void Simulation::create_weights_filenames(std::map<std::string, bool> &weights_map) 
+{
+	if (data_out_dir_created)
+	{
+		if (weights_map["PFPC"])
+		{
+			pfpc_weights_file = data_out_path + "/" + data_out_base_name
+							   + "_PFPC_WEIGHTS_" + get_current_time_as_string("%m%d%Y")
+							   + BIN_EXT;
+			pfpc_weights_filenames_created = true; // only useful so far for gui...
+		}
+		if (weights_map["MFNC"])
+		{
+			mfnc_weights_file = data_out_path + "/" + data_out_base_name
+							   + "_MFNC_WEIGHTS_" + get_current_time_as_string("%m%d%Y")
+							   + BIN_EXT;
+			mfnc_weights_filenames_created = true; // only useful so far for gui...
+		}
+	}
+}
 
 void Simulation::build_sim() {
 	if (!sim_state) sim_state = new MZoneState(num_mzones);
@@ -97,7 +155,6 @@ void Simulation::set_plast_modes(std::string pfpc_plast) {
 
 void Simulation::init_sim(std::string in_psth_filename, std::string in_sim_filename) {
 	LOG_DEBUG("Initializing simulation...");
-	//grs = new PoissonRegenCells(psth_file_buf);
 	std::fstream sim_file_buf(in_sim_filename.c_str(), std::ios::in | std::ios::binary);
 	read_con_params(sim_file_buf);
 	populate_act_params(s_file);
@@ -143,7 +200,7 @@ void Simulation::run_session() {
 	LOG_INFO("Session finished. took %0.2fs", session_end - session_start);
 }
 
-void Simulation::save_sim_to_file()
+void Simulation::save_sim()
 {
 	if (out_sim_filename_created)
 	{

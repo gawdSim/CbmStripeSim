@@ -29,6 +29,8 @@ MZoneConnectivityState::MZoneConnectivityState(int randSeed)
 	connectGRtoPC();
 	LOG_DEBUG("Connecting GR to BC");
 	connectGRtoBC();
+	LOG_DEBUG("Connecting GR to SC");
+	connectGRtoSC();
 	LOG_DEBUG("Connecting BC to PC");
 	connectBCtoPC();
 	LOG_DEBUG("Connecting PC to BC");
@@ -178,6 +180,10 @@ void MZoneConnectivityState::stateRW(bool read, std::fstream &file)
 {
 	// granule cells
 	rawBytesRW((char *)pGRDelayMaskfromGRtoBSP, num_gr * sizeof(uint32_t), read, file);
+
+	rawBytesRW((char *)pGRfromGRtoPC, num_gr * sizeof(uint32_t), read, file); 
+	rawBytesRW((char *)pGRfromGRtoBC, num_gr * sizeof(uint32_t), read, file);
+	rawBytesRW((char *)pGRfromGRtoSC, num_gr * sizeof(uint32_t), read, file);
 
 	// basket cells
 	rawBytesRW((char *)pBCfromBCtoPC[0], num_bc * num_p_bc_from_bc_to_pc * sizeof(uint32_t), read, file);

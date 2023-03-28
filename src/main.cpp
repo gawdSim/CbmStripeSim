@@ -46,6 +46,9 @@ int main(int argc, char **argv)
 			stripe_sim.run_session();
 		}
 	}
+	else if (p_cl.vis_mode == "GUI") {
+		LOG_DEBUG("GUI not implemented for stripe simulation. Exiting...");
+	}
 	return 0;
 }
 

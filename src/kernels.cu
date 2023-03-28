@@ -149,26 +149,26 @@ __global__ void updatePFPCOutGPU(uint32_t *apBuf, uint32_t *grConOut, uint32_t *
 {
 	int tid=threadIdx.x;
 	int index=blockIdx.x*blockDim.x+threadIdx.x;
-	uint32_t *pcRow=(uint32_t *)((char *)pfPC+blockIdx.x*pfPCPitch);
+	float *pcRow=(float *)((char *)pfPC+blockIdx.x*pfPCPitch);
 
 	uint32_t tempOut;
 
 	for (uint32_t i=0; i<nWrites; i++)
 	{
-		sharedIOBufGR[tid+i*blockDim.x]=0;
+		sharedIOBufGRfloat[tid+i*blockDim.x]=0;
 	}
 	__syncthreads();
 
 	tempOut = (apBuf[index] & delay[index]) > 0;
 	if (tempOut > 0)
 	{
-		atomicAdd(&sharedIOBufGR[grConOut[index]], synWeight[index]);
+		atomicAdd(&sharedIOBufGRfloat[grConOut[index]], synWeight[index]);
 	}
 	__syncthreads();
 
 	for(int i=0; i<nWrites; i++)
 	{
-		pcRow[tid+i*blockDim.x]=sharedIOBufGR[tid+i*blockDim.x];
+		pcRow[tid+i*blockDim.x]=sharedIOBufGRfloat[tid+i*blockDim.x];
 	}
 
 
@@ -182,18 +182,18 @@ __global__ void updatePFPCOutGPU(uint32_t *apBuf, uint32_t *grConOut, uint32_t *
 
 __global__ void sumPFPCOutGPU(unsigned int nRows, float *pcOut, size_t pcOutPitch, float *pcOutSum)
 {
-	unsigned int *pcOutRow;
-	int index=blockIdx.x*blockDim.x+threadIdx.x;
-	unsigned int tempSum;
+	float *pcOutRow;
+	int index = blockIdx.x*blockDim.x+threadIdx.x;
+	float tempSum;
 
-	tempSum=0;
+	tempSum = 0.0;
 	for(int i=0; i<nRows; i++)
 	{
-		pcOutRow=(unsigned int *)((char *)pcOut+i*pcOutPitch);
+		pcOutRow = (float *)((char *)pcOut+i*pcOutPitch);
 
-		tempSum+=pcOutRow[index];
+		tempSum += pcOutRow[index];
 	}
-	pcOutSum[index]=tempSum;
+	pcOutSum[index] = tempSum;
 }
 
 __global__ void sumPFBCSCOutGPU(uint32_t nRows, uint32_t *bcscOut, size_t bcscOutPitch, uint32_t *bcscOutSum)

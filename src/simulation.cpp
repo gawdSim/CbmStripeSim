@@ -385,11 +385,22 @@ void Simulation::run_session() {
 				sim_core->updateErrDrive(0, 0.3);
 			}
 			sim_core->calcActivity(pf_pc_plast, ts);
+			if (ts >= onsetCS - ms_pre_cs && ts < onsetCS + csLength + ms_post_cs)
+			{
+				fill_rasts(rast_ctr, psth_ctr);
+				fill_psths(psth_ctr);
+				psth_ctr++;
+				rast_ctr++;
+			}
 		}
+		save_pfpc_weights(trial);
 		trial_end = omp_get_wtime();
 		LOG_INFO("'%s' took %0.2fs", trialName.c_str(), trial_end - trial_start);
 		trial++;
 	}
+	save_sim();
+	save_rasts();
+	save_psths();
 	session_end = omp_get_wtime();
 	LOG_INFO("Session finished. took %0.2fs", session_end - session_start);
 }

@@ -375,7 +375,7 @@ const uint8_t *PoissonRegenCells::getGRAPs()
 	for (uint32_t i = 0; i < numGPUs; i++)
 	{
 		cudaSetDevice(i + gpuIndStart);
-		cudaMemcpy(aps_h, aps_d[i], num_gr * sizeof(uint8_t), cudaMemcpyDeviceToHost);
+		cudaMemcpy(&aps_h[i * numGRPerGPU], aps_d[i], numGRPerGPU * sizeof(uint8_t), cudaMemcpyDeviceToHost);
 	}
    return (const uint8_t *)aps_h; 
 }

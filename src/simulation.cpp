@@ -53,9 +53,12 @@ Simulation::Simulation(parsed_commandline &p_cl) {
 Simulation::~Simulation() {
 	if (trials_data_initialized) delete_trials_data(td); // FIXME: this is silly and should be deprecated
 
-	//if (grs) delete grs;
 	if (sim_state) delete sim_state;
 	if (sim_core) delete sim_core;
+
+	if (raster_arrays_initialized) delete_rasts();
+	if (psth_arrays_initialized)   delete_psths();
+	if (spike_sums_initialized)    delete_spike_sums();
 }
 
 void Simulation::create_out_sim_filename() {
@@ -144,6 +147,19 @@ void Simulation::init_cell_spikes()
 	}
 }
 
+void Simulation::init_spike_sums()
+{
+	for (uint32_t i = 0; i < NUM_CELL_TYPES; i++)
+	{
+		spike_sums[i].non_cs_spike_sum = 0;
+		spike_sums[i].cs_spike_sum = 0;
+		spike_sums[i].non_cs_spike_counter = (uint32_t *)calloc(rast_cell_nums[i], sizeof(uint32_t));
+		spike_sums[i].cs_spike_counter = (uint32_t *)calloc(rast_cell_nums[i], sizeof(uint32_t));
+	}
+	spike_sums_initialized = true;
+
+}
+
 void Simulation::init_rasts()
 {
 	for (uint32_t i = 0; i < NUM_CELL_TYPES; i++)
@@ -201,6 +217,61 @@ void Simulation::init_psth_save_funcs()
 	}
 }
 
+void Simulation::update_spike_sums(uint32_t tts, float onset_cs, float offset_cs)
+{
+	// update cs spikes
+	if (tts >= onset_cs && tts < offset_cs)
+	{
+		for (uint32_t i = 0; i < NUM_CELL_TYPES; i++)
+		{
+			for (uint32_t j = 0; j < rast_cell_nums[i]; j++)
+			{
+				spike_sums[i].cs_spike_sum += cell_spikes[i][j];
+				spike_sums[i].cs_spike_counter[j] += cell_spikes[i][j];
+			}
+		}
+	}
+	// update non-cs spikes
+	else if (tts < onset_cs)
+	{
+		for (uint32_t i = 0; i < NUM_CELL_TYPES; i++)
+		{
+			for (uint32_t j = 0; j < rast_cell_nums[i]; j++)
+			{
+				spike_sums[i].non_cs_spike_sum += cell_spikes[i][j];
+				spike_sums[i].non_cs_spike_counter[j] += cell_spikes[i][j];
+			}
+		}
+	}
+}
+
+void Simulation::calc_fire_rates(float onset_cs, float offset_cs)
+{
+	float non_cs_time_secs = (onset_cs - 1) / 1000.0; // why only pre-cs? (Ask Joe)
+	float cs_time_secs = (offset_cs - onset_cs) / 1000.0;
+
+	for (int i = 0; i < NUM_CELL_TYPES; i++)
+	{
+		// sort sums for medians 
+		std::sort(spike_sums[i].cs_spike_counter,
+			spike_sums[i].cs_spike_counter + rast_cell_nums[i]);
+		std::sort(spike_sums[i].non_cs_spike_counter,
+			spike_sums[i].non_cs_spike_counter + rast_cell_nums[i]);
+		
+		// calculate medians
+		firing_rates[i].non_cs_median_fr =
+			(spike_sums[i].non_cs_spike_counter[rast_cell_nums[i] / 2 - 1]
+		   + spike_sums[i].non_cs_spike_counter[rast_cell_nums[i] / 2]) / (2.0 * non_cs_time_secs);
+		firing_rates[i].cs_median_fr     =
+			(spike_sums[i].cs_spike_counter[rast_cell_nums[i] / 2 - 1]
+		   + spike_sums[i].cs_spike_counter[rast_cell_nums[i] / 2]) / (2.0 * cs_time_secs);
+		
+		// calculate means
+		firing_rates[i].non_cs_mean_fr = spike_sums[i].non_cs_spike_sum / (non_cs_time_secs * rast_cell_nums[i]);
+		firing_rates[i].cs_mean_fr     = spike_sums[i].cs_spike_sum / (cs_time_secs * rast_cell_nums[i]);
+	}
+}
+
 void Simulation::fill_rasts(uint32_t rast_ctr, uint32_t psth_ctr)
 {
 	for (uint32_t i = 0; i < NUM_CELL_TYPES; i++)
@@ -237,10 +308,22 @@ void Simulation::fill_psths(uint32_t psth_ctr)
 			}
 			for (uint32_t j = 0; j < rast_cell_nums[i]; j++)
 			{
+				if (cell_spikes[i][j]) printf("hit\n");
 				psths[i][psth_ctr][j] += cell_spikes[i][j];
 			}
 		}
 	}
+}
+
+void Simulation::reset_spike_sums()
+{
+		for (int i = 0; i < NUM_CELL_TYPES; i++)
+		{
+			spike_sums[i].cs_spike_sum = 0;
+			spike_sums[i].non_cs_spike_sum = 0;
+			memset(spike_sums[i].cs_spike_counter, 0, rast_cell_nums[i] * sizeof(uint32_t));
+			memset(spike_sums[i].non_cs_spike_counter, 0, rast_cell_nums[i] * sizeof(uint32_t));
+		}
 }
 
 void Simulation::save_sim()
@@ -353,6 +436,7 @@ void Simulation::init_sim(std::string in_psth_filename, std::string in_sim_filen
 	psth_file_buf.close();
 	init_rast_cell_nums();
 	init_cell_spikes();
+	init_spike_sums();
 	init_rasts(); 
 	init_psths();
 	init_rast_save_funcs();
@@ -385,6 +469,7 @@ void Simulation::run_session() {
 				sim_core->updateErrDrive(0, 0.3);
 			}
 			sim_core->calcActivity(pf_pc_plast, ts);
+			//update_spike_sums(ts, onsetCS, onsetCS + csLength);
 			if (ts >= onsetCS - ms_pre_cs && ts < onsetCS + csLength + ms_post_cs)
 			{
 				fill_rasts(rast_ctr, psth_ctr);
@@ -393,6 +478,13 @@ void Simulation::run_session() {
 				rast_ctr++;
 			}
 		}
+		//calc_fire_rates(onsetCS, onsetCS + csLength);
+		//LOG_INFO("PC Pop mean CS fr: %.2f", firing_rates[PC].cs_mean_fr);
+		//LOG_INFO("BC Pop mean CS fr: %.2f", firing_rates[BC].cs_mean_fr);
+		//LOG_INFO("SC Pop mean CS fr: %.2f", firing_rates[SC].cs_mean_fr);
+		//LOG_INFO("NC Pop mean CS fr: %.2f", firing_rates[NC].cs_mean_fr);
+		//LOG_INFO("IO Pop mean CS fr: %.2f", firing_rates[IO].cs_mean_fr);
+		//reset_spike_sums();
 		save_pfpc_weights(trial);
 		trial_end = omp_get_wtime();
 		LOG_INFO("'%s' took %0.2fs", trialName.c_str(), trial_end - trial_start);
@@ -403,5 +495,30 @@ void Simulation::run_session() {
 	save_psths();
 	session_end = omp_get_wtime();
 	LOG_INFO("Session finished. took %0.2fs", session_end - session_start);
+}
+
+void Simulation::delete_spike_sums()
+{
+	for (uint32_t i = 0; i < NUM_CELL_TYPES; i++)
+	{
+		free(spike_sums[i].non_cs_spike_counter);
+		free(spike_sums[i].cs_spike_counter);
+	}
+}
+
+void Simulation::delete_rasts()
+{
+	for (uint32_t i = 0; i < NUM_CELL_TYPES; i++)
+	{
+		if (!rf_names[i].empty()) delete2DArray<uint8_t>(rasters[i]);
+	}
+}
+
+void Simulation::delete_psths()
+{
+	for (uint32_t i = 0; i < NUM_CELL_TYPES; i++)
+	{
+		if (!pf_names[i].empty()) delete2DArray<uint8_t>(psths[i]);
+	}
 }
 

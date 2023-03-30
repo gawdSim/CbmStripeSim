@@ -18,6 +18,22 @@ const std::string CELL_IDS[NUM_CELL_TYPES] = {"GR", "BC", "SC", "PC", "IO", "NC"
 
 enum datatype {RASTER, PSTH};
 
+struct cell_spike_sums
+{
+	uint32_t non_cs_spike_sum;
+	uint32_t cs_spike_sum;
+	uint32_t *non_cs_spike_counter;
+	uint32_t *cs_spike_counter;
+};
+
+struct cell_firing_rates
+{
+	float non_cs_mean_fr;
+	float non_cs_median_fr;
+	float cs_mean_fr;
+	float cs_median_fr;
+};
+
 class Simulation
 {
 public:
@@ -71,6 +87,9 @@ public:
 
 	enum plasticity pf_pc_plast;
 
+	struct cell_spike_sums spike_sums[NUM_CELL_TYPES];
+	struct cell_firing_rates firing_rates[NUM_CELL_TYPES];
+
 	const uint8_t *cell_spikes[NUM_CELL_TYPES];
 	uint32_t rast_cell_nums[NUM_CELL_TYPES];
 	uint8_t **rasters[NUM_CELL_TYPES];
@@ -88,14 +107,20 @@ public:
 	// data initialization
 	void init_rast_cell_nums();
 	void init_cell_spikes();
+	void init_spike_sums();
 	void init_rasts(); 
 	void init_psths();
 	void init_rast_save_funcs();
 	void init_psth_save_funcs();
 
 	// filling data
+	void update_spike_sums(uint32_t tts, float onset_cs, float offset_cs);
+	void calc_fire_rates(float onset_cs, float offset_cs);
 	void fill_rasts(uint32_t rast_ctr, uint32_t psth_ctr);
 	void fill_psths(uint32_t psth_ctr);
+
+	// resetting data
+	void reset_spike_sums();
 
 	// saving data
 	void save_sim();
@@ -110,6 +135,11 @@ public:
 	void set_plast_modes(std::string pfpc_plast);
 	void init_sim(std::string in_psth_filename, std::string in_sim_filename);
 	void run_session();
+
+	// destructor things
+	void delete_spike_sums();
+	void delete_rasts();
+	void delete_psths();
 };
 
 #endif /* SIMULATION_H_ */

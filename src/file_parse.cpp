@@ -735,7 +735,8 @@ std::string parsed_build_file_to_str(parsed_build_file &b_file)
 std::string parsed_sess_file_to_str(parsed_sess_file &s_file)
 {
 	std::stringstream sess_file_buf;
-	sess_file_buf << "[\n";
+	sess_file_buf << "{\n";
+	// variable sections
 	for (auto var_sec : s_file.parsed_var_sections)
 	{
 		sess_file_buf << "\t{\n";
@@ -746,38 +747,42 @@ std::string parsed_sess_file_to_str(parsed_sess_file &s_file)
 		}
 		sess_file_buf << "\t},\n";
 	}
-	sess_file_buf << "{\n";
+	// trial definitions
+	sess_file_buf << "\t{\n";
 	for (auto pair : s_file.parsed_trial_info.trial_map)
 	{
-		sess_file_buf << "{'" << pair.first << "': {'";
+		sess_file_buf << "\t\t'" << pair.first << "': {\n";
 		for (auto vars : pair.second)
 		{
-			sess_file_buf << "{'" << vars.first << "': {'";
-			sess_file_buf << vars.second << "'}}\n";
+			sess_file_buf << "\t\t\t{'" << vars.first << "', '";
+			sess_file_buf << vars.second << "'},\n";
 		}
-		sess_file_buf << "}\n";
+		sess_file_buf << "\t\t},\n";
 	}
-	sess_file_buf << "}\n";
-	
-	sess_file_buf << "{\n";
+	sess_file_buf << "\t},\n";
+
+	// block definitions
+	sess_file_buf << "\t{\n";
 	for (auto block : s_file.parsed_trial_info.block_map)
 	{
-		sess_file_buf << "['" << block.first << "' : {";
+		sess_file_buf << "\t\t'" << block.first << "': {\n";
 		for (auto t_pair : block.second)
 		{
-			sess_file_buf << "{'" << t_pair.first << "', '";
-			sess_file_buf << t_pair.second << "'}\n";
+			sess_file_buf << "\t\t\t{'" << t_pair.first << "', '";
+			sess_file_buf << t_pair.second << "'},\n";
 		}
-		sess_file_buf << "}]\n";
+		sess_file_buf << "\t\t},\n";
 	}
-	sess_file_buf << "}\n";
+	sess_file_buf << "\t},\n";
 
-	sess_file_buf << "{\n";
+	// session definitions
+	sess_file_buf << "\t{\n";
 	for (auto bt_pair : s_file.parsed_trial_info.session)
 	{
-		sess_file_buf << "{'" << bt_pair.first << "', '";
-		sess_file_buf << bt_pair.second << "'}\n";
+		sess_file_buf << "\t\t{'" << bt_pair.first << "', '";
+		sess_file_buf << bt_pair.second << "'},\n";
 	}
+	sess_file_buf << "\t}\n";
 	sess_file_buf << "}\n";
 
 	return sess_file_buf.str();

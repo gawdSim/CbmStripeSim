@@ -164,29 +164,17 @@ static void parse_def(std::vector<lexed_token>::iterator &ltp,
                       std::string def_label)
 {
 	std::pair<std::string, std::string> curr_pair = {};
-	std::map<std::string, variable> curr_trial = {};
+	std::map<std::string, std::string> curr_trial = {};
 	std::vector<std::pair<std::string, std::string>> curr_block = {};
 	lexeme prev_lex = NONE;
-	variable curr_var = {};
 	while (ltp->lex != END_MARKER)
 	{
 		switch (ltp->lex)
 		{
-			case TYPE_NAME:
-				if (def_type == "trial") curr_var.type_name = ltp->raw_token;
-				else
-				{
-					// TODO: report error
-				}
-				break;
 			case VAR_IDENTIFIER:
 				if (def_type == "trial")
 				{
-					if (prev_lex != TYPE_NAME)
-					{
-						// TODO: report error
-					}
-					else curr_var.identifier = ltp->raw_token;
+					curr_pair.first = ltp->raw_token;
 				}
 				else
 				{
@@ -213,26 +201,21 @@ static void parse_def(std::vector<lexed_token>::iterator &ltp,
 				}
 				else
 				{
+					curr_pair.second = ltp->raw_token;
 					if (def_type == "trial")
 					{
-						curr_var.value = ltp->raw_token;
-						curr_trial[curr_var.identifier] = curr_var;
-						curr_var = {};
+						curr_trial[curr_pair.first] = curr_pair.second;
 					}
-					else
+					else if (def_type == "block")
 					{
-						curr_pair.second = ltp->raw_token;
-						if (def_type == "block")
-						{
-							curr_block.push_back(curr_pair);
-						}
-						else if (def_type == "session")
-						{
-							// TODO: should check if curr_pair.first is either a block or a trial identifier (at a later stage of processing)
-							s_file.parsed_trial_info.session.push_back(curr_pair);
-						}
-						curr_pair = {};
+						curr_block.push_back(curr_pair);
 					}
+					else if (def_type == "session")
+					{
+						// TODO: should check if curr_pair.first is either a block or a trial identifier (at a later stage of processing)
+						s_file.parsed_trial_info.session.push_back(curr_pair);
+					}
+					curr_pair = {};
 				}
 				break;
 			case SINGLE_COMMENT:
@@ -297,13 +280,13 @@ static void parse_trial_section(std::vector<lexed_token>::iterator &ltp, lexed_f
 	{
 		if (ltp->lex == DEF)
 		{
-			auto next_lt = std::next(ltp, 1);
-			auto second_next_lt = std::next(ltp, 2);
-			if (next_lt->lex == DEF_TYPE
-				&& second_next_lt->lex == VAR_IDENTIFIER)
+			auto next_ltp = std::next(ltp, 1);
+			auto second_next_ltp = std::next(ltp, 2);
+			if (next_ltp->lex == DEF_TYPE
+				&& second_next_ltp->lex == VAR_IDENTIFIER)
 			{
 				ltp += 4;
-				parse_def(ltp, l_file, s_file, next_lt->raw_token, second_next_lt->raw_token);
+				parse_def(ltp, l_file, s_file, next_ltp->raw_token, second_next_ltp->raw_token);
 			}
 			else {} // TODO: report error
 		}
@@ -623,12 +606,12 @@ void initialize_trials_data(trials_data &td, parsed_trial_section &pt_section)
 	initialize_trial_names_helper(td, pt_section, pt_section.session);
 	for (uint32_t i = 0; i < td.num_trials; i++)
 	{
-		td.use_css[i]         = std::stoi(pt_section.trial_map[td.trial_names[i]]["use_cs"].value);
-		td.cs_onsets[i]       = std::stoi(pt_section.trial_map[td.trial_names[i]]["cs_onset"].value);
-		td.cs_lens[i]         = std::stoi(pt_section.trial_map[td.trial_names[i]]["cs_len"].value);
-		td.cs_percents[i]     = std::stof(pt_section.trial_map[td.trial_names[i]]["cs_percent"].value);
-		td.use_uss[i]         = std::stoi(pt_section.trial_map[td.trial_names[i]]["use_us"].value);
-		td.us_onsets[i]       = std::stoi(pt_section.trial_map[td.trial_names[i]]["us_onset"].value);
+		td.use_css[i]         = std::stoi(pt_section.trial_map[td.trial_names[i]]["use_cs"]);
+		td.cs_onsets[i]       = std::stoi(pt_section.trial_map[td.trial_names[i]]["cs_onset"]);
+		td.cs_lens[i]         = std::stoi(pt_section.trial_map[td.trial_names[i]]["cs_len"]);
+		td.cs_percents[i]     = std::stof(pt_section.trial_map[td.trial_names[i]]["cs_percent"]);
+		td.use_uss[i]         = std::stoi(pt_section.trial_map[td.trial_names[i]]["use_us"]);
+		td.us_onsets[i]       = std::stoi(pt_section.trial_map[td.trial_names[i]]["us_onset"]);
 	}
 }
 
@@ -770,9 +753,7 @@ std::string parsed_sess_file_to_str(parsed_sess_file &s_file)
 		for (auto vars : pair.second)
 		{
 			sess_file_buf << "{'" << vars.first << "': {'";
-			sess_file_buf << vars.second.type_name << "', '";
-			sess_file_buf << vars.second.identifier << "', '";
-			sess_file_buf << vars.second.value << "'}}\n";
+			sess_file_buf << vars.second << "'}}\n";
 		}
 		sess_file_buf << "}\n";
 	}

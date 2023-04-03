@@ -62,57 +62,57 @@ float threshRestNC     = 0.0;
 void populate_con_params(parsed_build_file &p_file)
 {
 	/* int con params */
-	gr_x                         = std::stoi(p_file.parsed_var_sections["connectivity"].param_map["gr_x"].value); 
-	gr_y                         = std::stoi(p_file.parsed_var_sections["connectivity"].param_map["gr_y"].value); 
-	num_gr                       = std::stoi(p_file.parsed_var_sections["connectivity"].param_map["num_gr"].value); 
-	num_bc                       = std::stoi(p_file.parsed_var_sections["connectivity"].param_map["num_bc"].value); 
-	num_sc                       = std::stoi(p_file.parsed_var_sections["connectivity"].param_map["num_sc"].value);
-	num_pc                       = std::stoi(p_file.parsed_var_sections["connectivity"].param_map["num_pc"].value); 
-	num_nc                       = std::stoi(p_file.parsed_var_sections["connectivity"].param_map["num_nc"].value); 
-	num_io                       = std::stoi(p_file.parsed_var_sections["connectivity"].param_map["num_io"].value); 
-	gr_pf_vel_in_gr_x_per_t_step = std::stoi(p_file.parsed_var_sections["connectivity"].param_map["gr_pf_vel_in_gr_x_per_t_step"].value);
-	gr_af_delay_in_t_step        = std::stoi(p_file.parsed_var_sections["connectivity"].param_map["gr_af_delay_in_t_step"].value);
-	num_p_bc_from_bc_to_pc       = std::stoi(p_file.parsed_var_sections["connectivity"].param_map["num_p_bc_from_bc_to_pc"].value);
-	num_p_pc_from_bc_to_pc       = std::stoi(p_file.parsed_var_sections["connectivity"].param_map["num_p_pc_from_bc_to_pc"].value);
-	num_p_bc_from_gr_to_bc       = std::stoi(p_file.parsed_var_sections["connectivity"].param_map["num_p_bc_from_gr_to_bc"].value);
-	num_p_bc_from_gr_to_bc_p2    = std::stoi(p_file.parsed_var_sections["connectivity"].param_map["num_p_bc_from_gr_to_bc_p2"].value);
-	num_p_pc_from_pc_to_bc       = std::stoi(p_file.parsed_var_sections["connectivity"].param_map["num_p_pc_from_pc_to_bc"].value);
-	num_p_bc_from_pc_to_bc       = std::stoi(p_file.parsed_var_sections["connectivity"].param_map["num_p_bc_from_pc_to_bc"].value);
-	num_p_sc_from_sc_to_pc       = std::stoi(p_file.parsed_var_sections["connectivity"].param_map["num_p_sc_from_sc_to_pc"].value);
-	num_p_pc_from_sc_to_pc       = std::stoi(p_file.parsed_var_sections["connectivity"].param_map["num_p_pc_from_sc_to_pc"].value);
-	num_p_sc_from_gr_to_sc       = std::stoi(p_file.parsed_var_sections["connectivity"].param_map["num_p_sc_from_gr_to_sc"].value);
-	num_p_sc_from_gr_to_sc_p2    = std::stoi(p_file.parsed_var_sections["connectivity"].param_map["num_p_sc_from_gr_to_sc_p2"].value);
-	num_p_pc_from_pc_to_nc       = std::stoi(p_file.parsed_var_sections["connectivity"].param_map["num_p_pc_from_pc_to_nc"].value);
-	num_p_nc_from_pc_to_nc       = std::stoi(p_file.parsed_var_sections["connectivity"].param_map["num_p_nc_from_pc_to_nc"].value);
-	num_p_pc_from_gr_to_pc       = std::stoi(p_file.parsed_var_sections["connectivity"].param_map["num_p_pc_from_gr_to_pc"].value);
-	num_p_pc_from_gr_to_pc_p2    = std::stoi(p_file.parsed_var_sections["connectivity"].param_map["num_p_pc_from_gr_to_pc_p2"].value);
-	num_p_mf_from_mf_to_nc       = std::stoi(p_file.parsed_var_sections["connectivity"].param_map["num_p_mf_from_mf_to_nc"].value);
-	num_p_nc_from_mf_to_nc       = std::stoi(p_file.parsed_var_sections["connectivity"].param_map["num_p_nc_from_mf_to_nc"].value);
-	num_p_nc_from_nc_to_io       = std::stoi(p_file.parsed_var_sections["connectivity"].param_map["num_p_nc_from_nc_to_io"].value);
-	num_p_io_from_nc_to_io       = std::stoi(p_file.parsed_var_sections["connectivity"].param_map["num_p_io_from_nc_to_io"].value);
-	num_p_io_from_io_to_pc       = std::stoi(p_file.parsed_var_sections["connectivity"].param_map["num_p_io_from_io_to_pc"].value);
-	num_p_io_in_io_to_io         = std::stoi(p_file.parsed_var_sections["connectivity"].param_map["num_p_io_in_io_to_io"].value);
-	num_p_io_out_io_to_io        = std::stoi(p_file.parsed_var_sections["connectivity"].param_map["num_p_io_out_io_to_io"].value);
+	gr_x                         = std::stoi(p_file.parsed_var_sections["connectivity"].param_map["gr_x"]); 
+	gr_y                         = std::stoi(p_file.parsed_var_sections["connectivity"].param_map["gr_y"]); 
+	num_gr                       = std::stoi(p_file.parsed_var_sections["connectivity"].param_map["num_gr"]); 
+	num_bc                       = std::stoi(p_file.parsed_var_sections["connectivity"].param_map["num_bc"]); 
+	num_sc                       = std::stoi(p_file.parsed_var_sections["connectivity"].param_map["num_sc"]);
+	num_pc                       = std::stoi(p_file.parsed_var_sections["connectivity"].param_map["num_pc"]); 
+	num_nc                       = std::stoi(p_file.parsed_var_sections["connectivity"].param_map["num_nc"]); 
+	num_io                       = std::stoi(p_file.parsed_var_sections["connectivity"].param_map["num_io"]); 
+	gr_pf_vel_in_gr_x_per_t_step = std::stoi(p_file.parsed_var_sections["connectivity"].param_map["gr_pf_vel_in_gr_x_per_t_step"]);
+	gr_af_delay_in_t_step        = std::stoi(p_file.parsed_var_sections["connectivity"].param_map["gr_af_delay_in_t_step"]);
+	num_p_bc_from_bc_to_pc       = std::stoi(p_file.parsed_var_sections["connectivity"].param_map["num_p_bc_from_bc_to_pc"]);
+	num_p_pc_from_bc_to_pc       = std::stoi(p_file.parsed_var_sections["connectivity"].param_map["num_p_pc_from_bc_to_pc"]);
+	num_p_bc_from_gr_to_bc       = std::stoi(p_file.parsed_var_sections["connectivity"].param_map["num_p_bc_from_gr_to_bc"]);
+	num_p_bc_from_gr_to_bc_p2    = std::stoi(p_file.parsed_var_sections["connectivity"].param_map["num_p_bc_from_gr_to_bc_p2"]);
+	num_p_pc_from_pc_to_bc       = std::stoi(p_file.parsed_var_sections["connectivity"].param_map["num_p_pc_from_pc_to_bc"]);
+	num_p_bc_from_pc_to_bc       = std::stoi(p_file.parsed_var_sections["connectivity"].param_map["num_p_bc_from_pc_to_bc"]);
+	num_p_sc_from_sc_to_pc       = std::stoi(p_file.parsed_var_sections["connectivity"].param_map["num_p_sc_from_sc_to_pc"]);
+	num_p_pc_from_sc_to_pc       = std::stoi(p_file.parsed_var_sections["connectivity"].param_map["num_p_pc_from_sc_to_pc"]);
+	num_p_sc_from_gr_to_sc       = std::stoi(p_file.parsed_var_sections["connectivity"].param_map["num_p_sc_from_gr_to_sc"]);
+	num_p_sc_from_gr_to_sc_p2    = std::stoi(p_file.parsed_var_sections["connectivity"].param_map["num_p_sc_from_gr_to_sc_p2"]);
+	num_p_pc_from_pc_to_nc       = std::stoi(p_file.parsed_var_sections["connectivity"].param_map["num_p_pc_from_pc_to_nc"]);
+	num_p_nc_from_pc_to_nc       = std::stoi(p_file.parsed_var_sections["connectivity"].param_map["num_p_nc_from_pc_to_nc"]);
+	num_p_pc_from_gr_to_pc       = std::stoi(p_file.parsed_var_sections["connectivity"].param_map["num_p_pc_from_gr_to_pc"]);
+	num_p_pc_from_gr_to_pc_p2    = std::stoi(p_file.parsed_var_sections["connectivity"].param_map["num_p_pc_from_gr_to_pc_p2"]);
+	num_p_mf_from_mf_to_nc       = std::stoi(p_file.parsed_var_sections["connectivity"].param_map["num_p_mf_from_mf_to_nc"]);
+	num_p_nc_from_mf_to_nc       = std::stoi(p_file.parsed_var_sections["connectivity"].param_map["num_p_nc_from_mf_to_nc"]);
+	num_p_nc_from_nc_to_io       = std::stoi(p_file.parsed_var_sections["connectivity"].param_map["num_p_nc_from_nc_to_io"]);
+	num_p_io_from_nc_to_io       = std::stoi(p_file.parsed_var_sections["connectivity"].param_map["num_p_io_from_nc_to_io"]);
+	num_p_io_from_io_to_pc       = std::stoi(p_file.parsed_var_sections["connectivity"].param_map["num_p_io_from_io_to_pc"]);
+	num_p_io_in_io_to_io         = std::stoi(p_file.parsed_var_sections["connectivity"].param_map["num_p_io_in_io_to_io"]);
+	num_p_io_out_io_to_io        = std::stoi(p_file.parsed_var_sections["connectivity"].param_map["num_p_io_out_io_to_io"]);
 
 	/* float con params */
-	msPerTimeStep            = std::stof(p_file.parsed_var_sections["activity"].param_map["msPerTimeStep"].value); 
-	numPopHistBinsPC         = std::stof(p_file.parsed_var_sections["activity"].param_map["numPopHistBinsPC"].value); 
+	msPerTimeStep            = std::stof(p_file.parsed_var_sections["activity"].param_map["msPerTimeStep"]); 
+	numPopHistBinsPC         = std::stof(p_file.parsed_var_sections["activity"].param_map["numPopHistBinsPC"]); 
 
 	/* act params */
-	//eLeakGR      = std::stof(p_file.parsed_var_sections["activity"].param_map["eLeakGR"].value); 
-	//threshRestGR = std::stof(p_file.parsed_var_sections["activity"].param_map["threshRestGR"].value); 
+	//eLeakGR      = std::stof(p_file.parsed_var_sections["activity"].param_map["eLeakGR"]); 
+	//threshRestGR = std::stof(p_file.parsed_var_sections["activity"].param_map["threshRestGR"]); 
 	
-	eLeakSC          = std::stof(p_file.parsed_var_sections["activity"].param_map["eLeakSC"].value);
-	threshRestSC     = std::stof(p_file.parsed_var_sections["activity"].param_map["threshRestSC"].value);
-	eLeakBC          = std::stof(p_file.parsed_var_sections["activity"].param_map["eLeakBC"].value);
-	threshRestBC     = std::stof(p_file.parsed_var_sections["activity"].param_map["threshRestBC"].value);
-	eLeakPC          = std::stof(p_file.parsed_var_sections["activity"].param_map["eLeakPC"].value);
-	threshRestPC     = std::stof(p_file.parsed_var_sections["activity"].param_map["threshRestPC"].value);
-	initSynWofGRtoPC = std::stof(p_file.parsed_var_sections["activity"].param_map["initSynWofGRtoPC"].value);
-	eLeakIO          = std::stof(p_file.parsed_var_sections["activity"].param_map["eLeakIO"].value);
-	threshRestIO     = std::stof(p_file.parsed_var_sections["activity"].param_map["threshRestIO"].value);
-	eLeakNC          = std::stof(p_file.parsed_var_sections["activity"].param_map["eLeakNC"].value);
-	threshRestNC     = std::stof(p_file.parsed_var_sections["activity"].param_map["threshRestNC"].value);
+	eLeakSC          = std::stof(p_file.parsed_var_sections["activity"].param_map["eLeakSC"]);
+	threshRestSC     = std::stof(p_file.parsed_var_sections["activity"].param_map["threshRestSC"]);
+	eLeakBC          = std::stof(p_file.parsed_var_sections["activity"].param_map["eLeakBC"]);
+	threshRestBC     = std::stof(p_file.parsed_var_sections["activity"].param_map["threshRestBC"]);
+	eLeakPC          = std::stof(p_file.parsed_var_sections["activity"].param_map["eLeakPC"]);
+	threshRestPC     = std::stof(p_file.parsed_var_sections["activity"].param_map["threshRestPC"]);
+	initSynWofGRtoPC = std::stof(p_file.parsed_var_sections["activity"].param_map["initSynWofGRtoPC"]);
+	eLeakIO          = std::stof(p_file.parsed_var_sections["activity"].param_map["eLeakIO"]);
+	threshRestIO     = std::stof(p_file.parsed_var_sections["activity"].param_map["threshRestIO"]);
+	eLeakNC          = std::stof(p_file.parsed_var_sections["activity"].param_map["eLeakNC"]);
+	threshRestNC     = std::stof(p_file.parsed_var_sections["activity"].param_map["threshRestNC"]);
 
 	con_params_populated = true;
 }

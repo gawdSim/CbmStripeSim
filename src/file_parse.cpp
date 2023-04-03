@@ -268,26 +268,15 @@ static void parse_var_section(std::vector<lexed_token>::iterator &ltp,
                               std::string region_type)
 {
 	parsed_var_section curr_section = {};
-	variable curr_var = {};
 	while (ltp->lex != END_MARKER)
 	{
-		if (ltp->lex == TYPE_NAME)
+		auto next_ltp = std::next(ltp, 1);
+		if (ltp->lex == VAR_IDENTIFIER
+			&& next_ltp->lex == VAR_VALUE)
 		{
-			auto next_lt = std::next(ltp, 1);
-			auto second_next_lt = std::next(ltp, 2);
-			if (next_lt->lex == VAR_IDENTIFIER
-				&& second_next_lt->lex == VAR_VALUE)
-			{
-				curr_var.type_name  = ltp->raw_token;
-				curr_var.identifier = next_lt->raw_token;
-				curr_var.value      = second_next_lt->raw_token;
-
-				curr_section.param_map[next_lt->raw_token] = curr_var;
-				curr_var = {};
-				ltp += 2;
-			}
+			curr_section.param_map[ltp->raw_token] = next_ltp->raw_token;
+			ltp += 1;
 		}
-
 		else if (ltp->lex == SINGLE_COMMENT)
 		{
 			while (ltp->lex != NEW_LINE) ltp++;
@@ -445,24 +434,14 @@ static void parse_var_section(std::vector<lexed_token>::iterator &ltp,
                               std::string region_type)
 {
 	parsed_var_section curr_section = {};
-	variable curr_var = {};
 	while (ltp->lex != END_MARKER)
 	{
-		if (ltp->lex == TYPE_NAME)
+		auto next_ltp = std::next(ltp, 1);
+		if (ltp->lex == VAR_IDENTIFIER
+			  && next_ltp->lex == VAR_VALUE)
 		{
-			auto next_lt = std::next(ltp, 1);
-			auto second_next_lt = std::next(ltp, 2);
-			if (next_lt->lex == VAR_IDENTIFIER
-				&& second_next_lt->lex == VAR_VALUE)
-			{
-				curr_var.type_name  = ltp->raw_token;
-				curr_var.identifier = next_lt->raw_token;
-				curr_var.value      = second_next_lt->raw_token;
-
-				curr_section.param_map[next_lt->raw_token] = curr_var;
-				curr_var = {};
-				ltp += 2;
-			}
+			curr_section.param_map[ltp->raw_token] = next_ltp->raw_token;
+			ltp += 1;
 		}
 		else if (ltp->lex == SINGLE_COMMENT)
 		{
@@ -758,16 +737,15 @@ std::string parsed_build_file_to_str(parsed_build_file &b_file)
 	build_file_buf << "[\n";
 	for (auto var_sec : b_file.parsed_var_sections)
 	{
-		build_file_buf << "{\n";
+		build_file_buf << "\t{\n";
 		for (auto pair : var_sec.second.param_map)
 		{
-			build_file_buf << "['" << pair.first << "': {'";
-			build_file_buf << pair.second.type_name << "', '";
-			build_file_buf << pair.second.identifier << "', '";
-			build_file_buf << pair.second.value << "'}]\n";
+			build_file_buf << "\t\t'" << pair.first << "', '";
+			build_file_buf << pair.second << "'\n";
 		}
-		build_file_buf << "}\n";
+		build_file_buf << "\t},\n";
 	}
+	build_file_buf << "]\n";
 	return build_file_buf.str();
 }
 
@@ -777,17 +755,14 @@ std::string parsed_sess_file_to_str(parsed_sess_file &s_file)
 	sess_file_buf << "[\n";
 	for (auto var_sec : s_file.parsed_var_sections)
 	{
-		sess_file_buf << "{\n";
+		sess_file_buf << "\t{\n";
 		for (auto pair : var_sec.second.param_map)
 		{
-			sess_file_buf << "['" << pair.first << "': {'";
-			sess_file_buf << pair.second.type_name << "', '";
-			sess_file_buf << pair.second.identifier << "', '";
-			sess_file_buf << pair.second.value << "'}]\n";
+			sess_file_buf << "\t\t'" << pair.first << "', '";
+			sess_file_buf << pair.second << "'\n";
 		}
-		sess_file_buf << "}\n";
+		sess_file_buf << "\t},\n";
 	}
-
 	sess_file_buf << "{\n";
 	for (auto pair : s_file.parsed_trial_info.trial_map)
 	{

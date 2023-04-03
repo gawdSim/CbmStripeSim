@@ -68,7 +68,7 @@ typedef struct
  */
 typedef struct
 {
-	std::map<std::string, variable> param_map;
+	std::map<std::string, std::string> param_map;
 } parsed_var_section;
 
 typedef struct

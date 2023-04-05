@@ -14,13 +14,17 @@
 #include "dynamic2darray.h"
 #include "poissonregencells.h"
 
-PoissonRegenCells::PoissonRegenCells(std::fstream &psth_file_buf, cudaStream_t **streams)
-
+PoissonRegenCells::PoissonRegenCells(std::fstream &psth_file_buf,
+									 cudaStream_t **streams)
 {
 	// make this time(NULL) or something for random runs
 	randSeedGen = new CRandomSFMT0(0);
 
 	nThreads=1;
+	// bad: should read this in from file so you do not have
+	// to change in two places for every isi.
+	num_template_ts = 2300;
+	num_trials = 1000;
 	randGens=new CRandomSFMT0*[nThreads];
 
 	for(unsigned int i=0; i<nThreads; i++)
@@ -33,7 +37,7 @@ PoissonRegenCells::PoissonRegenCells(std::fstream &psth_file_buf, cudaStream_t *
 	threshMax  = 1;
 	threshIncTau = 5; // hard code in the decay time constant
 	threshInc = 1 - exp(-1.0 / threshIncTau); // for now, hard code in time-bin size
-	sPerTS = msPerTimeStep / 1000;
+	sPerTS = msPerTimeStep / 1000.0;
 
 	expansion_factor = 1; //128; // by what factor are we expanding the granule cell number?
 	num_gr_old = num_gr / expansion_factor;
@@ -45,9 +49,9 @@ PoissonRegenCells::PoissonRegenCells(std::fstream &psth_file_buf, cudaStream_t *
 
 	for (size_t i = 0; i < num_gr; i++) threshs_h[i]  = threshMax;
 
-	psths = allocate2DArray<uint8_t>(2800, num_gr);
-	//rasters = allocate2DArray<uint8_t>(2800, num_gr); // hardcoded, 2800 ts by 1000 trials by num_gr grs
-	gr_templates_h = allocate2DArray<float>(num_gr / expansion_factor, 2800); // for now, only have firing rates from trials of 2800
+	psths = allocate2DArray<uint8_t>(num_template_ts, num_gr);
+	//rasters = allocate2DArray<uint8_t>(num_template_ts, num_gr); // hardcoded, num_template_ts ts by 1000 trials by num_gr grs
+	gr_templates_h = allocate2DArray<float>(num_gr / expansion_factor, num_template_ts); // for now, only have firing rates from trials of num_template_ts
 	init_templates_from_psth_file(psth_file_buf);
 
 	initGRCUDA();
@@ -104,7 +108,7 @@ PoissonRegenCells::~PoissonRegenCells()
 // Soon to be deprecated: was for loading in pre-computed smoothed-fr
 //void PoissonRegenCells::init_fr_from_file(std::fstream &input_file_buf)
 //{
-//	input_file_buf.read((char *)gr_fr[0], num_gr * 2800 * sizeof(float));
+//	input_file_buf.read((char *)gr_fr[0], num_gr * num_template_ts * sizeof(float));
 //}
 
 void PoissonRegenCells::init_templates_from_psth_file(std::fstream &input_psth_file_buf)
@@ -127,24 +131,24 @@ void PoissonRegenCells::init_templates_from_psth_file(std::fstream &input_psth_f
 
 	enum {ZERO_FIRERS, LOW_FIRERS, HIGH_FIRERS};
 	uint32_t num_fire_categories[3] = {0};
-	// expect input data comes from 1000 trials, 2800 ts a piece.
+	// expect input data comes from num_trials trials, num_template_ts ts a piece.
 	const float THRESH_FR = 10.0; // in Hz
-	const uint32_t THRESH_COUNT = (THRESH_FR / 1000.0) * 2800 * 1000;
-	uint8_t **input_psths = allocate2DArray<uint8_t>(2800, num_gr_old);
+	const uint32_t THRESH_COUNT = (THRESH_FR / 1000.0) * num_template_ts * num_trials;
+	uint8_t **input_psths = allocate2DArray<uint8_t>(num_template_ts, num_gr_old);
 	uint8_t *firing_categories = (uint8_t *)calloc(num_gr_old, sizeof(uint8_t));
 	uint32_t *cell_spike_sums = (uint32_t *)calloc(num_gr_old, sizeof(uint32_t));
 	LOG_INFO("loading cells from file.");
-	input_psth_file_buf.read((char *)input_psths[0], 2800 * num_gr_old * sizeof(uint8_t));
+	input_psth_file_buf.read((char *)input_psths[0], num_template_ts * num_gr_old * sizeof(uint8_t));
 	LOG_INFO("finished load.");
 	LOG_INFO("transposing...");
-	uint8_t **input_psths_t = transpose2DArray(input_psths,  2800, num_gr_old);
+	uint8_t **input_psths_t = transpose2DArray(input_psths,  num_template_ts, num_gr_old);
 	LOG_INFO("finished transposing.");
 
 	// determine firing rate categories
 	LOG_INFO("determining firing categories...");
 	for (size_t i = 0; i < num_gr_old; i++)
 	{
-		for (size_t j = 0; j < 2800; j++)
+		for (size_t j = 0; j < num_template_ts; j++)
 		{
 			cell_spike_sums[i] += input_psths_t[i][j]; // add in the current time-steps accumulated spikes
 		}
@@ -176,25 +180,25 @@ void PoissonRegenCells::init_templates_from_psth_file(std::fstream &input_psth_f
 		 //NOTE: no need to include zero_firers as calloc sets their values to zero
 		if (firing_categories[i] == LOW_FIRERS)
 		{
-			float mean_rate = ((float)cell_spike_sums[i] * 1000) / (2800 * 1000); // DEBUG
-			for (size_t j = 0; j < 2800; j++)
+			float mean_rate = ((float)cell_spike_sums[i] * 1000.0) / (num_template_ts * num_trials); // DEBUG
+			for (size_t j = 0; j < num_template_ts; j++)
 			{
 				gr_templates_h[i][j] = mean_rate; // just set every bin to same avg fr
 			}
 		}
 		else // high firers
 		{
-			for (size_t j = 0; j < 2800; j++)
+			for (size_t j = 0; j < num_template_ts; j++)
 			{
 			   // here multiply by 1000 to convert to seconds, then divide by num trials
-				gr_templates_h[i][j] = ((float)input_psths_t[i][j] * 1000.0) / 1000.0; // DEBUG
+				gr_templates_h[i][j] = ((float)input_psths_t[i][j] * 1000.0) / (float)num_trials; // DEBUG
 			}
 		}
 	}
 	LOG_INFO("finished creating templates...");
 
 	LOG_INFO("transposing templates...");
-	gr_templates_t_h = transpose2DArray(gr_templates_h, num_gr_old, 2800);
+	gr_templates_t_h = transpose2DArray(gr_templates_h, num_gr_old, num_template_ts);
 	LOG_INFO("finished transposing templates.");
 
 	delete2DArray(input_psths);
@@ -205,7 +209,7 @@ void PoissonRegenCells::init_templates_from_psth_file(std::fstream &input_psth_f
 
 void PoissonRegenCells::initGRCUDA()
 {
-	//gr_templates_t_h = allocate2DArray<float>(2800, num_gr_old);
+	//gr_templates_t_h = allocate2DArray<float>(num_template_ts, num_gr_old);
 	numGROldPerGPU = num_gr_old / numGPUs;
 	numGRPerGPU = num_gr / numGPUs;
 
@@ -225,7 +229,7 @@ void PoissonRegenCells::initGRCUDA()
 	{
 		cudaSetDevice(i + gpuIndStart);
 		cudaMallocPitch(&gr_templates_t_d[i], &gr_templates_t_pitch[i],
-			numGROldPerGPU * sizeof(float), 2800);
+			numGROldPerGPU * sizeof(float), num_template_ts);
 	  LOG_INFO("gr templates malloc pitch error: %s", cudaGetErrorString(cudaGetLastError()));
     cudaMalloc(&threshs_d[i], numGRPerGPU * sizeof(float));
 	  LOG_INFO("threshs malloc error: %s", cudaGetErrorString(cudaGetLastError()));
@@ -252,7 +256,7 @@ void PoissonRegenCells::initGRCUDA()
 	grCpyStartInd = i * numGRPerGPU;
 	cudaSetDevice(i + gpuIndStart);
 
-	for (size_t j = 0; j < 2800; j++)
+	for (size_t j = 0; j < num_template_ts; j++)
 	{
 		cudaMemcpy((char *)gr_templates_t_d[i] + j * gr_templates_t_pitch[i], &gr_templates_t_h[j][grOldCpyStartInd],
 			grOldCpySize * sizeof(float), cudaMemcpyHostToDevice);
@@ -362,12 +366,12 @@ void PoissonRegenCells::fill_psths(size_t ts)
 
 //void PoissonRegenCells::save_rasters(std::string out_file)
 //{
-//	write2DArray<uint8_t>(out_file, rasters, 2800, num_gr);
+//	write2DArray<uint8_t>(out_file, rasters, num_template_ts, num_gr);
 //}
 
 void PoissonRegenCells::save_psths(std::string out_file)
 {
-	write2DArray<uint8_t>(out_file, psths, 2800, num_gr);
+	write2DArray<uint8_t>(out_file, psths, num_template_ts, num_gr);
 }
 
 const uint8_t *PoissonRegenCells::getGRAPs()

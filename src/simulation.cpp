@@ -308,7 +308,6 @@ void Simulation::fill_psths(uint32_t psth_ctr)
 			}
 			for (uint32_t j = 0; j < rast_cell_nums[i]; j++)
 			{
-				if (cell_spikes[i][j]) printf("hit\n");
 				psths[i][psth_ctr][j] += cell_spikes[i][j];
 			}
 		}

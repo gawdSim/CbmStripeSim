@@ -27,7 +27,8 @@ class PoissonRegenCells
 {
 public:
 	PoissonRegenCells();
-	PoissonRegenCells(std::fstream &psth_file_buf, cudaStream_t **streams);
+	PoissonRegenCells(std::fstream &psth_file_buf,
+					  cudaStream_t **streams);
 	~PoissonRegenCells();
 
 	void calcGRPoissActivity(size_t ts, cudaStream_t **streams, uint8_t streamN);
@@ -58,6 +59,8 @@ private:
 	float **grActRandNums;
 
 	unsigned int nThreads;
+	uint32_t num_template_ts;
+	uint32_t num_trials;
 
   uint64_t numGROldPerGPU;
   uint64_t numGRPerGPU;

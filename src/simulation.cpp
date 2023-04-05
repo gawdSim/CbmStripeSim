@@ -404,11 +404,13 @@ void Simulation::init_sess(std::string sess_file) {
 	tokenize_file(sess_file, t_file);
 	lex_tokenized_file(t_file, l_file);
 	parse_lexed_sess_file(l_file, s_file);
+	std::cout << s_file << std::endl;
+	exit(0);
 	translate_parsed_trials(s_file, td);
 
-	trial_time = std::stoi(s_file.parsed_var_sections["trial_spec"].param_map["trialTime"].value);
-	ms_pre_cs  = std::stoi(s_file.parsed_var_sections["trial_spec"].param_map["msPreCS"].value);
-	ms_post_cs = std::stoi(s_file.parsed_var_sections["trial_spec"].param_map["msPostCS"].value);
+	trial_time = std::stoi(s_file.parsed_var_sections["trial_spec"].param_map["trialTime"]);
+	ms_pre_cs  = std::stoi(s_file.parsed_var_sections["trial_spec"].param_map["msPreCS"]);
+	ms_post_cs = std::stoi(s_file.parsed_var_sections["trial_spec"].param_map["msPostCS"]);
 	ms_measure = ms_pre_cs + td.cs_lens[0] + ms_post_cs; // assumes all trials have same cs len
 
 	trials_data_initialized = true;

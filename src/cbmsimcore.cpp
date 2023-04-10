@@ -223,7 +223,7 @@ void CBMSimCore::construct(std::fstream &psth_file_buf, MZoneState *state,
 	LOG_DEBUG("Finished initialzing cuda streams.");
 
 	LOG_DEBUG("Initializing granule cells ...");
-	grs = new PoissonRegenCells(psth_file_buf, streams);
+	grs = new PoissonRegenCells(numGPUs, psth_file_buf, streams);
 	LOG_DEBUG("granule cells initialized.");
 
 	LOG_DEBUG("Initializing mzones...");

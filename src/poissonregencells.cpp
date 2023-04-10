@@ -14,12 +14,13 @@
 #include "dynamic2darray.h"
 #include "poissonregencells.h"
 
-PoissonRegenCells::PoissonRegenCells(std::fstream &psth_file_buf,
+PoissonRegenCells::PoissonRegenCells(uint32_t num_gpus, std::fstream &psth_file_buf,
 									 cudaStream_t **streams)
 {
 	// make this time(NULL) or something for random runs
 	randSeedGen = new CRandomSFMT0(0);
 
+	numGPUs = num_gpus;
 	nThreads=1;
 	// bad: should read this in from file so you do not have
 	// to change in two places for every isi.
@@ -39,7 +40,7 @@ PoissonRegenCells::PoissonRegenCells(std::fstream &psth_file_buf,
 	threshInc = 1 - exp(-1.0 / threshIncTau); // for now, hard code in time-bin size
 	sPerTS = msPerTimeStep / 1000.0;
 
-	expansion_factor = 1; //128; // by what factor are we expanding the granule cell number?
+	expansion_factor = 128; //128; // by what factor are we expanding the granule cell number?
 	num_gr_old = num_gr / expansion_factor;
 
 	threshs_h = (float *)calloc(num_gr, sizeof(float));
@@ -49,9 +50,7 @@ PoissonRegenCells::PoissonRegenCells(std::fstream &psth_file_buf,
 
 	for (size_t i = 0; i < num_gr; i++) threshs_h[i]  = threshMax;
 
-	psths = allocate2DArray<uint8_t>(num_template_ts, num_gr);
-	//rasters = allocate2DArray<uint8_t>(num_template_ts, num_gr); // hardcoded, num_template_ts ts by 1000 trials by num_gr grs
-	gr_templates_h = allocate2DArray<float>(num_gr / expansion_factor, num_template_ts); // for now, only have firing rates from trials of num_template_ts
+	gr_templates_h = allocate2DArray<float>(num_gr_old, num_template_ts); // for now, only have firing rates from trials of num_template_ts
 	init_templates_from_psth_file(psth_file_buf);
 
 	initGRCUDA();
@@ -77,8 +76,6 @@ PoissonRegenCells::~PoissonRegenCells()
 
 	delete[] randGens;
 
-	delete2DArray(psths);
-	//delete2DArray(rasters);
 	free(threshs_h);
 	free(aps_h);
 	free(aps_buf_h);
@@ -113,22 +110,6 @@ PoissonRegenCells::~PoissonRegenCells()
 
 void PoissonRegenCells::init_templates_from_psth_file(std::fstream &input_psth_file_buf)
 {
-	/*
-	 * Plan for the algorithm
-	 *
-	 * 1. read in psth data into a single array
-	 * 2. determine categories:
-	 *    a. which indices correspond to high firers during CS?
-	 *    b. which indices correspond to cells that do not fire at all?
-	 *    c. which indices correspond to cells that do fire, but below some cut-off avg fr?
-	 * 3. reduce the number of templates given above categories:
-	 *    a. full representation of gr templates from high CS firers
-	 *    b. truncation of templates to 1 single "zero" template for low and non-firers,
-	 *       or two separate: low fire and zero fire template
-	 * 4. randomly assign each template to 100x its amount in the expanded sim
-	 * 5. profit
-	 */
-
 	enum {ZERO_FIRERS, LOW_FIRERS, HIGH_FIRERS};
 	uint32_t num_fire_categories[3] = {0};
 	// expect input data comes from num_trials trials, num_template_ts ts a piece.
@@ -209,7 +190,6 @@ void PoissonRegenCells::init_templates_from_psth_file(std::fstream &input_psth_f
 
 void PoissonRegenCells::initGRCUDA()
 {
-	//gr_templates_t_h = allocate2DArray<float>(num_template_ts, num_gr_old);
 	numGROldPerGPU = num_gr_old / numGPUs;
 	numGRPerGPU = num_gr / numGPUs;
 
@@ -338,40 +318,16 @@ void PoissonRegenCells::calcGRPoissActivity(size_t ts, cudaStream_t **streams, u
 	    callCurandGenerateUniformKernel<curandStateMRG32k3a>(streams[i][3],
 	    	mrg32k3aRNGs[i], updateGRRandNumBlocks, updateGRRandNumGRPerB,
 	    	grActRandNums[i], j);
+		//if (ts == 0) {
+		//	LOG_DEBUG("Last curand kernel error: %s", cudaGetErrorString(cudaGetLastError()));
+		//}
 	  }
     callGRActKernel(streams[i][streamN], calcGRActNumBlocks, calcGRActNumGRPerB,
-      threshs_d[i], aps_d[i], aps_buf_d[i], aps_hist_d[i], grActRandNums[i], gr_templates_t_d[i], gr_templates_t_pitch[i], numGROldPerGPU,
+      threshs_d[i], aps_d[i], aps_buf_d[i], aps_hist_d[i], grActRandNums[i],
+	  gr_templates_t_d[i], gr_templates_t_pitch[i], numGROldPerGPU,
       ts, sPerTS, apBufGRHistMask, threshBase, threshMax, threshInc);
+	//LOG_DEBUG("Last calc GR act kernel error: %s", cudaGetErrorString(cudaGetLastError()));
   }
-}
-
-//void PoissonRegenCells::fill_rasters(uint32_t ts)
-//{
-//	memcpy(rasters[ts], aps, num_gr * sizeof(uint8_t));
-//}
-
-void PoissonRegenCells::fill_psths(size_t ts)
-{
-	for (uint32_t i = 0; i < numGPUs; i++)
-	{
-		cudaSetDevice(i + gpuIndStart);
-		cudaMemcpy(&aps_h[i * numGRPerGPU], aps_d[i], numGRPerGPU * sizeof(uint8_t), cudaMemcpyDeviceToHost);
-	}
-#pragma omp parallel for
-	for (size_t i = 0; i < num_gr; i++)
-	{
-		psths[ts][i] += aps_h[i];
-	}
-}
-
-//void PoissonRegenCells::save_rasters(std::string out_file)
-//{
-//	write2DArray<uint8_t>(out_file, rasters, num_template_ts, num_gr);
-//}
-
-void PoissonRegenCells::save_psths(std::string out_file)
-{
-	write2DArray<uint8_t>(out_file, psths, num_template_ts, num_gr);
 }
 
 const uint8_t *PoissonRegenCells::getGRAPs()

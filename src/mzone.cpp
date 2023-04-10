@@ -261,8 +261,8 @@ void MZone::initCUDA()
 	LOG_DEBUG("Initialized SC CUDA");
 	LOG_DEBUG("Last error: %s", cudaGetErrorString(cudaGetLastError()));
 	
-	testReduction();
-	LOG_DEBUG("Finished Test.");
+	//testReduction();
+	//LOG_DEBUG("Finished Test.");
 }
 
 void MZone::initBCCUDA()
@@ -377,7 +377,7 @@ void MZone::initSCCUDA()
 		cudaMemcpy(gr_sc_con_in_d[i], &(cs->pGRfromGRtoSC[cpyStartInd]), cpySize * sizeof(uint32_t), cudaMemcpyHostToDevice);
 
 		cudaMallocPitch((void **)&inputPFSCGPU[i], (size_t *)&inputPFSCGPUPitch[i],
-				num_sc * sizeof(uint32_t), num_sc * sizeof(uint32_t));
+				num_sc * sizeof(uint32_t), updatePFSCNumBlocks);
 		cudaMalloc((void **)&inputSumPFSCGPU[i], num_sc * sizeof(uint32_t));
 		cudaDeviceSynchronize();
 	}

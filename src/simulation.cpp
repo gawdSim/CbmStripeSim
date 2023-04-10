@@ -63,10 +63,7 @@ Simulation::~Simulation() {
 
 void Simulation::create_out_sim_filename() {
 	if (data_out_dir_created) {
-		out_sim_name = data_out_path + "/"
-					 + data_out_base_name + "_"
-					 + get_current_time_as_string("%m%d%Y")
-					 + SIM_EXT;
+		out_sim_name = data_out_path + "/" + data_out_base_name + SIM_EXT;
 		out_sim_filename_created = true;
 	}
 }
@@ -75,37 +72,32 @@ void Simulation::create_rast_or_psth_filenames(std::map<std::string, bool> &data
 {
 	if (data_out_dir_created)
 	{
-		std::string data_out_id = "";
-		std::string *names_ptr;
-		bool *created_ptr;
 		switch (data_type) {
 		   case RASTER:
-			  data_out_id = "_RAST_";
-			  names_ptr = rf_names;
-			  created_ptr = &raster_filenames_created;
-			  break;
+				for (uint32_t i = 0; i < NUM_CELL_TYPES; i++)
+				{
+					if (data_map[CELL_IDS[i]])
+					{
+						rf_names[i] = data_out_path + "/" + data_out_base_name + RAST_EXT[i];
+					}
+				}
+				raster_filenames_created = true;
+				break;
 			case PSTH:
-			  data_out_id = "_PSTH_";
-			  names_ptr = pf_names;
-			  created_ptr = &psth_filenames_created;
-			  break;
+				for (uint32_t i = 0; i < NUM_CELL_TYPES; i++)
+				{
+					if (data_map[CELL_IDS[i]])
+					{
+						pf_names[i] = data_out_path + "/" + data_out_base_name + PSTH_EXT[i];
+					}
+				}
+				psth_filenames_created = true;
+				break;
 			default:
 			  LOG_DEBUG("Something has gone terribly wrong.");
 			  exit(1);
 			  // something has gone terribly wrong
 		}
-		for (uint32_t i = 0; i < NUM_CELL_TYPES; i++)
-		{
-			std::string cell_id = CELL_IDS[i];
-			if (data_map[cell_id])
-			{
-				names_ptr[i] = data_out_path + "/" + data_out_base_name
-											+ "_" + cell_id + data_out_id
-											+ get_current_time_as_string("%m%d%Y")
-											+ BIN_EXT;
-			}
-		}
-		*created_ptr = true;
 	}
 }
 
@@ -115,9 +107,7 @@ void Simulation::create_weights_filenames(std::map<std::string, bool> &weights_m
 	{
 		if (weights_map["PFPC"])
 		{
-			pfpc_weights_file = data_out_path + "/" + data_out_base_name
-							   + "_PFPC_WEIGHTS_" + get_current_time_as_string("%m%d%Y")
-							   + BIN_EXT;
+			pfpc_weights_file = data_out_path + "/" + data_out_base_name + ".pfpcw";
 			pfpc_weights_filenames_created = true; // only useful so far for gui...
 		}
 	}
@@ -180,6 +170,7 @@ void Simulation::init_psths()
 	{
 		if (!pf_names[i].empty())
 			// TODO: make data type bigger for psth
+			// FIXME: this guy will be too big for 2^24 gr cell!!!
 			psths[i] = allocate2DArray<uint8_t>(ms_measure, rast_cell_nums[i]);
 	}
 	psth_arrays_initialized = true;
@@ -391,8 +382,6 @@ void Simulation::save_pfpc_weights(int32_t trial)
 	}
 }
 
-
-
 void Simulation::build_sim() {
 	if (!sim_state) sim_state = new MZoneState(num_mzones);
 }
@@ -404,8 +393,6 @@ void Simulation::init_sess(std::string sess_file) {
 	tokenize_file(sess_file, t_file);
 	lex_tokenized_file(t_file, l_file);
 	parse_lexed_sess_file(l_file, s_file);
-	std::cout << s_file << std::endl;
-	exit(0);
 	translate_parsed_trials(s_file, td);
 
 	trial_time = std::stoi(s_file.parsed_var_sections["trial_spec"].param_map["trialTime"]);
@@ -471,13 +458,13 @@ void Simulation::run_session() {
 			}
 			sim_core->calcActivity(pf_pc_plast, ts);
 			//update_spike_sums(ts, onsetCS, onsetCS + csLength);
-			if (ts >= onsetCS - ms_pre_cs && ts < onsetCS + csLength + ms_post_cs)
-			{
-				fill_rasts(rast_ctr, psth_ctr);
-				fill_psths(psth_ctr);
-				psth_ctr++;
-				rast_ctr++;
-			}
+			//if (ts >= onsetCS - ms_pre_cs && ts < onsetCS + csLength + ms_post_cs)
+			//{
+			//	fill_rasts(rast_ctr, psth_ctr);
+			//	fill_psths(psth_ctr);
+			//	psth_ctr++;
+			//	rast_ctr++;
+			//}
 		}
 		//calc_fire_rates(onsetCS, onsetCS + csLength);
 		//LOG_INFO("PC Pop mean CS fr: %.2f", firing_rates[PC].cs_mean_fr);
@@ -486,14 +473,14 @@ void Simulation::run_session() {
 		//LOG_INFO("NC Pop mean CS fr: %.2f", firing_rates[NC].cs_mean_fr);
 		//LOG_INFO("IO Pop mean CS fr: %.2f", firing_rates[IO].cs_mean_fr);
 		//reset_spike_sums();
-		save_pfpc_weights(trial);
+		//save_pfpc_weights(trial);
 		trial_end = omp_get_wtime();
 		LOG_INFO("'%s' took %0.2fs", trialName.c_str(), trial_end - trial_start);
 		trial++;
 	}
-	save_sim();
-	save_rasts();
-	save_psths();
+	//save_sim();
+	//save_rasts();
+	//save_psths();
 	session_end = omp_get_wtime();
 	LOG_INFO("Session finished. took %0.2fs", session_end - session_start);
 }

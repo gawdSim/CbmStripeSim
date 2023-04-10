@@ -27,15 +27,11 @@ class PoissonRegenCells
 {
 public:
 	PoissonRegenCells();
-	PoissonRegenCells(std::fstream &psth_file_buf,
-					  cudaStream_t **streams);
+	PoissonRegenCells(uint32_t num_gpus, std::fstream &psth_file_buf,
+									 	 cudaStream_t **streams);
 	~PoissonRegenCells();
 
 	void calcGRPoissActivity(size_t ts, cudaStream_t **streams, uint8_t streamN);
-	//void fill_rasters(uint32_t ts);
-	void fill_psths(size_t ts);
-	//void save_rasters(std::string out_file);
-	void save_psths(std::string out_file);
 	const uint8_t *getGRAPs();
 	const float **getGRFRs();
 	uint32_t **get_ap_buf_gr_gpu();
@@ -54,7 +50,7 @@ private:
 	curandStateMRG32k3a **mrg32k3aRNGs; // device randGens
 
 	uint32_t gpuIndStart = 0;
-  uint64_t numGPUs = 2;
+	uint64_t numGPUs;// = 4;
 
 	float **grActRandNums;
 
@@ -79,8 +75,6 @@ private:
 	uint32_t expansion_factor;
   size_t num_gr_old;
 
-	uint8_t **psths;
-	//uint8_t **rasters;
 	float **gr_fr;
 	float **gr_templates_h;
 	// i made this var because is mildly faster :-) come back in 46 days pls and thank

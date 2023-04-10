@@ -13,6 +13,11 @@
 
 enum cell_id {GR, BC, SC, PC, IO, NC};
 
+// should put these in file_utility.h
+const std::string RAST_EXT[NUM_CELL_TYPES] = {".grr", ".bcr", ".scr", ".pcr", ".ior", ".ncr"}; 
+const std::string PSTH_EXT[NUM_CELL_TYPES] = {".grp", ".bcp", ".scp", ".pcp", ".iop", ".ncp"}; 
+const std::string WEIGHTS_EXT[NUM_WEIGHTS_TYPES] = {".pfpcw", ".mfncw"}; 
+
 // convenience array for getting string representations of the cell ids
 const std::string CELL_IDS[NUM_CELL_TYPES] = {"GR", "BC", "SC", "PC", "IO", "NC"}; 
 
@@ -71,7 +76,7 @@ public:
 	std::string mfnc_weights_file = "";
 
 	uint8_t gpu_index = 0;
-	uint8_t num_gpu   = 2;
+	uint8_t num_gpu   = 4;
 
 	uint32_t trial;
 	uint32_t rast_ctr;

@@ -61,7 +61,7 @@ __global__ void calcActivityGRGPU(float *threshGPU, uint8_t *apGPU, uint32_t *ap
 	int tix = blockIdx.x * blockDim.x + threadIdx.x;
 	float *gr_template_row = (float *)((char *)gr_templateGPU + ts * gr_template_pitchGPU);
 	//threshGPU[tix] += (threshMax - threshGPU[tix]) * threshInc;
-	apGPU[tix] = randoms[tix] < (gr_template_row[tix] * s_per_ts); // * threshGPU[tix]);
+	apGPU[tix] = randoms[tix] < (gr_template_row[tix % num_gr_old] * s_per_ts); // * threshGPU[tix]);
 	apBufGPU[tix] = (apBufGPU[tix] << 1) | apGPU[tix];
 	apHistGPU[tix] <<= 1;
 	apHistGPU[tix] |= ((apBufGPU[tix] & ap_buf_hist_mask) > 0) * 0x00000001;

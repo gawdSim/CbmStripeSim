@@ -83,7 +83,7 @@ public:
 	uint32_t psth_ctr;
 
 	const uint32_t num_mzones = 1;
-	const uint32_t pre_collect_ts = 0; //2000;
+	const uint32_t pre_collect_ts = 2000;
 
 	uint32_t trial_time;
 	uint32_t ms_pre_cs;

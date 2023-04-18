@@ -91,11 +91,11 @@ MZone::~MZone()
 		cudaFreeHost(inputSumPFSCMZH[i]);
 
 		cudaSetDevice(i+gpuIndStart);
-		cudaFree(apSCGPU[i]);
-		cudaFree(apBufSCGPU[i]);
-		cudaFree(gPFSCGPU[i]);
-		cudaFree(threshSCGPU[i]);
-		cudaFree(vSCGPU[i]);
+		//cudaFree(apSCGPU[i]);
+		//cudaFree(apBufSCGPU[i]);
+		//cudaFree(gPFSCGPU[i]);
+		//cudaFree(threshSCGPU[i]);
+		//cudaFree(vSCGPU[i]);
 		cudaFree(gr_sc_con_in_d[i]);
 		cudaFree(inputPFSCGPU[i]);
 		cudaFree(inputSumPFSCGPU[i]);
@@ -105,11 +105,11 @@ MZone::~MZone()
 	delete[] inputSumPFSCMZH;
 	delete[] inputSumPFSCH;
 
-	delete[] apSCGPU;
-	delete[] apBufSCGPU;
-	delete[] gPFSCGPU;
-	delete[] threshSCGPU;
-	delete[] vSCGPU;
+	//delete[] apSCGPU;
+	//delete[] apBufSCGPU;
+	//delete[] gPFSCGPU;
+	//delete[] threshSCGPU;
+	//delete[] vSCGPU;
 	delete[] gr_sc_con_in_d;
 	delete[] inputPFSCGPU;
 	delete[] inputPFSCGPUPitch;
@@ -121,12 +121,12 @@ MZone::~MZone()
 		cudaSetDevice(i + gpuIndStart);
 		cudaFreeHost(inputSumPFBCMZH[i]);
 
-		cudaFree(apBCGPU[i]);
-		cudaFree(apBufBCGPU[i]);
-		cudaFree(gPFBCGPU[i]);
-		cudaFree(gPCBCGPU[i]);
-		cudaFree(threshBCGPU[i]);
-		cudaFree(vBCGPU[i]);
+		//cudaFree(apBCGPU[i]);
+		//cudaFree(apBufBCGPU[i]);
+		//cudaFree(gPFBCGPU[i]);
+		//cudaFree(gPCBCGPU[i]);
+		//cudaFree(threshBCGPU[i]);
+		//cudaFree(vBCGPU[i]);
 		cudaFree(gr_bc_con_in_d[i]);
 		cudaFree(inputPFBCGPU[i]);
 		cudaFree(inputSumPFBCGPU[i]);
@@ -136,12 +136,12 @@ MZone::~MZone()
 	delete[] inputSumPFBCMZH;
 	delete[] inputSumPFBCH;
 
-	delete[] apBCGPU;
-	delete[] apBufBCGPU;
-	delete[] gPFBCGPU;
-	delete[] gPCBCGPU;
-	delete[] threshBCGPU;
-	delete[] vBCGPU;
+	//delete[] apBCGPU;
+	//delete[] apBufBCGPU;
+	//delete[] gPFBCGPU;
+	//delete[] gPCBCGPU;
+	//delete[] threshBCGPU;
+	//delete[] vBCGPU;
 	delete[] gr_bc_con_in_d;
 	delete[] inputPFBCGPU;
 	delete[] inputPFBCGPUPitch;
@@ -267,12 +267,12 @@ void MZone::initCUDA()
 
 void MZone::initBCCUDA()
 {
-	apBCGPU = new uint8_t*[numGPUs];
-	apBufBCGPU = new uint32_t*[numGPUs];
-	gPFBCGPU = new float*[numGPUs];
-	gPCBCGPU = new float*[numGPUs];
-	threshBCGPU = new float*[numGPUs];
-	vBCGPU = new float*[numGPUs];
+	//apBCGPU = new uint8_t*[numGPUs];
+	//apBufBCGPU = new uint32_t*[numGPUs];
+	//gPFBCGPU = new float*[numGPUs];
+	//gPCBCGPU = new float*[numGPUs];
+	//threshBCGPU = new float*[numGPUs];
+	//vBCGPU = new float*[numGPUs];
 
 	gr_bc_con_in_d = new uint32_t*[numGPUs];
 	
@@ -295,12 +295,12 @@ void MZone::initBCCUDA()
 		cudaMallocHost((void **)&inputSumPFBCMZH[i], num_bc * sizeof(uint32_t));
 		cudaMemset(inputSumPFBCMZH[i], 0, num_bc * sizeof(uint32_t));
 
-		cudaMalloc((void **)&apBCGPU[i], numBCPerGPU * sizeof(uint8_t));
-		cudaMalloc((void **)&apBufBCGPU[i], numBCPerGPU * sizeof(uint32_t));
-		cudaMalloc((void **)&gPFBCGPU[i], numBCPerGPU * sizeof(float));
-		cudaMalloc((void **)&gPCBCGPU[i], numBCPerGPU * sizeof(float));
-		cudaMalloc((void **)&threshBCGPU[i], numBCPerGPU * sizeof(float));
-		cudaMalloc((void **)&vBCGPU[i], numBCPerGPU * sizeof(float));
+		//cudaMalloc((void **)&apBCGPU[i], numBCPerGPU * sizeof(uint8_t));
+		//cudaMalloc((void **)&apBufBCGPU[i], numBCPerGPU * sizeof(uint32_t));
+		//cudaMalloc((void **)&gPFBCGPU[i], numBCPerGPU * sizeof(float));
+		//cudaMalloc((void **)&gPCBCGPU[i], numBCPerGPU * sizeof(float));
+		//cudaMalloc((void **)&threshBCGPU[i], numBCPerGPU * sizeof(float));
+		//cudaMalloc((void **)&vBCGPU[i], numBCPerGPU * sizeof(float));
 
 		cudaMalloc((void **)&gr_bc_con_in_d[i], numGRPerGPU * sizeof(uint32_t));
 		cudaMemcpy(gr_bc_con_in_d[i], &(cs->pGRfromGRtoBC[cpyStartInd]), cpySize * sizeof(uint32_t), cudaMemcpyHostToDevice);
@@ -320,12 +320,12 @@ void MZone::initBCCUDA()
 		int cpyStartInd = numBCPerGPU * i;
 		int cpySize     = numBCPerGPU;
 		cudaSetDevice(i + gpuIndStart);
-		cudaMemset(apBCGPU[i], 0, numBCPerGPU * sizeof(uint8_t));
-		cudaMemset(apBufBCGPU[i], 0, numBCPerGPU * sizeof(uint32_t));
-		cudaMemset(gPFBCGPU[i], 0, numBCPerGPU * sizeof(float));
-		cudaMemset(gPCBCGPU[i], 0, numBCPerGPU * sizeof(float));
-		cudaMemcpy(threshBCGPU[i], &(as->threshBC[cpyStartInd]), cpySize * sizeof(float), cudaMemcpyHostToDevice);
-		cudaMemcpy(vBCGPU[i], &(as->vBC[cpyStartInd]), cpySize * sizeof(float), cudaMemcpyHostToDevice);
+		//cudaMemset(apBCGPU[i], 0, numBCPerGPU * sizeof(uint8_t));
+		//cudaMemset(apBufBCGPU[i], 0, numBCPerGPU * sizeof(uint32_t));
+		//cudaMemset(gPFBCGPU[i], 0, numBCPerGPU * sizeof(float));
+		//cudaMemset(gPCBCGPU[i], 0, numBCPerGPU * sizeof(float));
+		//cudaMemcpy(threshBCGPU[i], &(as->threshBC[cpyStartInd]), cpySize * sizeof(float), cudaMemcpyHostToDevice);
+		//cudaMemcpy(vBCGPU[i], &(as->vBC[cpyStartInd]), cpySize * sizeof(float), cudaMemcpyHostToDevice);
 
 		for (int j = 0; j < updatePFBCNumBlocks; j++)
 		{
@@ -340,11 +340,11 @@ void MZone::initBCCUDA()
 
 void MZone::initSCCUDA()
 {
-	apSCGPU = new uint8_t*[numGPUs];
-	apBufSCGPU = new uint32_t*[numGPUs];
-	gPFSCGPU = new float*[numGPUs];
-	threshSCGPU = new float*[numGPUs];
-	vSCGPU = new float*[numGPUs];
+	//apSCGPU = new uint8_t*[numGPUs];
+	//apBufSCGPU = new uint32_t*[numGPUs];
+	//gPFSCGPU = new float*[numGPUs];
+	//threshSCGPU = new float*[numGPUs];
+	//vSCGPU = new float*[numGPUs];
 
 	gr_sc_con_in_d = new uint32_t*[numGPUs];
 
@@ -367,11 +367,11 @@ void MZone::initSCCUDA()
 		cudaMallocHost((void **)&inputSumPFSCMZH[i], num_sc * sizeof(uint32_t));
 		cudaMemset(inputSumPFSCMZH[i], 0, num_sc * sizeof(uint32_t));
 
-		cudaMalloc((void **)&apSCGPU[i], numSCPerGPU * sizeof(uint8_t));
-		cudaMalloc((void **)&apBufSCGPU[i], numSCPerGPU * sizeof(uint32_t));
-		cudaMalloc((void **)&gPFSCGPU[i], numSCPerGPU * sizeof(float));
-		cudaMalloc((void **)&threshSCGPU[i], numSCPerGPU * sizeof(float));
-		cudaMalloc((void **)&vSCGPU[i], numSCPerGPU * sizeof(float));
+		//cudaMalloc((void **)&apSCGPU[i], numSCPerGPU * sizeof(uint8_t));
+		//cudaMalloc((void **)&apBufSCGPU[i], numSCPerGPU * sizeof(uint32_t));
+		//cudaMalloc((void **)&gPFSCGPU[i], numSCPerGPU * sizeof(float));
+		//cudaMalloc((void **)&threshSCGPU[i], numSCPerGPU * sizeof(float));
+		//cudaMalloc((void **)&vSCGPU[i], numSCPerGPU * sizeof(float));
 
 		cudaMalloc((void **)&gr_sc_con_in_d[i], numGRPerGPU * sizeof(uint32_t));
 		cudaMemcpy(gr_sc_con_in_d[i], &(cs->pGRfromGRtoSC[cpyStartInd]), cpySize * sizeof(uint32_t), cudaMemcpyHostToDevice);
@@ -391,11 +391,11 @@ void MZone::initSCCUDA()
 		int cpyStartInd = numSCPerGPU * i;
 		int cpySize     = numSCPerGPU;
 		cudaSetDevice(i + gpuIndStart);
-		cudaMemset(apSCGPU[i], 0, numSCPerGPU * sizeof(uint8_t));
-		cudaMemset(apBufSCGPU[i], 0, numSCPerGPU * sizeof(uint32_t));
-		cudaMemset(gPFSCGPU[i], 0, numSCPerGPU * sizeof(float));
-		cudaMemcpy(threshSCGPU[i], &(as->threshSC[cpyStartInd]), cpySize * sizeof(float), cudaMemcpyHostToDevice);
-		cudaMemcpy(vSCGPU[i], &(as->vSC[cpyStartInd]), cpySize * sizeof(float), cudaMemcpyHostToDevice);
+		//cudaMemset(apSCGPU[i], 0, numSCPerGPU * sizeof(uint8_t));
+		//cudaMemset(apBufSCGPU[i], 0, numSCPerGPU * sizeof(uint32_t));
+		//cudaMemset(gPFSCGPU[i], 0, numSCPerGPU * sizeof(float));
+		//cudaMemcpy(threshSCGPU[i], &(as->threshSC[cpyStartInd]), cpySize * sizeof(float), cudaMemcpyHostToDevice);
+		//cudaMemcpy(vSCGPU[i], &(as->vSC[cpyStartInd]), cpySize * sizeof(float), cudaMemcpyHostToDevice);
 		for(int j =0; j < updatePFSCNumBlocks; j++)
 		{
 			cudaMemset(((char *)inputPFSCGPU[i] + j * inputPFSCGPUPitch[i]),
@@ -873,7 +873,7 @@ void MZone::runPFPCPlastCUDA(cudaStream_t **sts, int streamN, uint32_t t)
 			{
 				curIOInd++;
 			}
-			callUpdatePFPCPlasticityIOKernel(sts[curGPUInd][streamN + curIOInd],
+			callUpdatePFPCPlasticityIOKernel(sts[curGPUInd][(streamN + curIOInd) % 8],
 					updatePFPCSynWNumBlocks, updatePFPCSynWNumGRPerB, pfSynWeightPCGPU[curGPUInd],
 					histGRGPU[curGPUInd], grPCHistCheckBinIO, curGROffset, pfPCPlastStepIO[curIOInd]);
 

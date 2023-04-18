@@ -458,13 +458,13 @@ void Simulation::run_session() {
 			}
 			sim_core->calcActivity(pf_pc_plast, ts);
 			//update_spike_sums(ts, onsetCS, onsetCS + csLength);
-			//if (ts >= onsetCS - ms_pre_cs && ts < onsetCS + csLength + ms_post_cs)
-			//{
-			//	fill_rasts(rast_ctr, psth_ctr);
-			//	fill_psths(psth_ctr);
-			//	psth_ctr++;
-			//	rast_ctr++;
-			//}
+			if (ts >= onsetCS - ms_pre_cs && ts < onsetCS + csLength + ms_post_cs)
+			{
+				fill_rasts(rast_ctr, psth_ctr);
+				fill_psths(psth_ctr);
+				psth_ctr++;
+				rast_ctr++;
+			}
 		}
 		//calc_fire_rates(onsetCS, onsetCS + csLength);
 		//LOG_INFO("PC Pop mean CS fr: %.2f", firing_rates[PC].cs_mean_fr);
@@ -473,14 +473,14 @@ void Simulation::run_session() {
 		//LOG_INFO("NC Pop mean CS fr: %.2f", firing_rates[NC].cs_mean_fr);
 		//LOG_INFO("IO Pop mean CS fr: %.2f", firing_rates[IO].cs_mean_fr);
 		//reset_spike_sums();
-		//save_pfpc_weights(trial);
+		save_pfpc_weights(trial);
 		trial_end = omp_get_wtime();
 		LOG_INFO("'%s' took %0.2fs", trialName.c_str(), trial_end - trial_start);
 		trial++;
 	}
-	//save_sim();
-	//save_rasts();
-	//save_psths();
+	save_sim();
+	save_rasts();
+	save_psths();
 	session_end = omp_get_wtime();
 	LOG_INFO("Session finished. took %0.2fs", session_end - session_start);
 }

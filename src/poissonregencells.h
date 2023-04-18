@@ -55,8 +55,13 @@ private:
 	float **grActRandNums;
 
 	unsigned int nThreads;
-	uint32_t num_template_ts;
+	uint32_t num_in_template_ts; // num ts collected from CbmSim as psth
+	uint32_t num_out_template_ts; // num ts use to produce poisson activity here
 	uint32_t num_trials;
+	uint32_t isi; // obviously must match too
+	uint32_t pre_cs_ms; // must match what we ran in cbmsim -> gives correct alignment to cs
+	uint32_t post_cs_ms; // this is arbitrary
+	uint32_t remaining_in_trial; // every ts that is not pre, post cs and isi
 
   uint64_t numGROldPerGPU;
   uint64_t numGRPerGPU;

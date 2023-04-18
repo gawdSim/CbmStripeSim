@@ -137,11 +137,11 @@ private:
 	uint32_t **inputSumPFSCMZH;
 	uint32_t *inputSumPFSCH;
 
-	uint8_t **apSCGPU;
-	uint32_t **apBufSCGPU;
-	float **gPFSCGPU;
-	float **threshSCGPU;
-	float **vSCGPU;
+	//uint8_t **apSCGPU;
+	//uint32_t **apBufSCGPU;
+	//float **gPFSCGPU;
+	//float **threshSCGPU;
+	//float **vSCGPU;
 
 	uint32_t **gr_sc_con_in_d;
 	uint32_t **inputPFSCGPU;
@@ -155,12 +155,12 @@ private:
 	uint32_t **inputSumPFBCMZH;
 	uint32_t *inputSumPFBCH;
 
-	uint8_t **apBCGPU;
-	uint32_t **apBufBCGPU;
-	float **gPFBCGPU;
-	float **gPCBCGPU;
-	float **threshBCGPU;
-	float **vBCGPU;
+	//uint8_t **apBCGPU;
+	//uint32_t **apBufBCGPU;
+	//float **gPFBCGPU;
+	//float **gPCBCGPU;
+	//float **threshBCGPU;
+	//float **vBCGPU;
 
 	uint32_t **gr_bc_con_in_d;
 	uint32_t **inputPFBCGPU;

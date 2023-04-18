@@ -46,7 +46,7 @@ PoissonRegenCells::PoissonRegenCells(uint32_t num_gpus, std::fstream &psth_file_
 	threshInc = 1 - exp(-1.0 / threshIncTau); // for now, hard code in time-bin size
 	sPerTS = msPerTimeStep / 1000.0;
 
-	expansion_factor = 64; // by what factor are we expanding the granule cell number?
+	expansion_factor = 32; // by what factor are we expanding the granule cell number?
 	num_gr_old = num_gr / expansion_factor;
 
 	threshs_h = (float *)calloc(num_gr, sizeof(float));

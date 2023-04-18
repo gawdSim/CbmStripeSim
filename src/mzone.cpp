@@ -443,6 +443,7 @@ void MZone::setErrDrive(float errDriveRelative)
 
 void MZone::calcPCActivities()
 {
+#pragma omp parallel for
 	for (int i = 0; i < num_pc; i++)
 	{
 		inputPFPCSumH[i] = 0;
@@ -499,6 +500,7 @@ void MZone::calcPCActivities()
 
 void MZone::calcBCActivities()
 {
+#pragma omp parallel for
 	for (int i = 0; i < num_bc; i++)
 	{
 		inputSumPFBCH[i] = 0;
@@ -527,6 +529,7 @@ void MZone::calcBCActivities()
 
 void MZone::calcSCActivities()
 {
+#pragma omp parallel for
 	for (int i = 0; i < num_sc; i++)
 	{
 		inputSumPFSCH[i] = 0;

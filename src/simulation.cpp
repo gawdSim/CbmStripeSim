@@ -213,52 +213,54 @@ void Simulation::update_spike_sums(uint32_t tts, float onset_cs, float offset_cs
 	// update cs spikes
 	if (tts >= onset_cs && tts < offset_cs)
 	{
+#pragma omp parallel for
 		for (uint32_t i = 0; i < NUM_CELL_TYPES; i++)
 		{
 			for (uint32_t j = 0; j < rast_cell_nums[i]; j++)
 			{
 				spike_sums[i].cs_spike_sum += cell_spikes[i][j];
-				spike_sums[i].cs_spike_counter[j] += cell_spikes[i][j];
+				//spike_sums[i].cs_spike_counter[j] += cell_spikes[i][j];
 			}
 		}
 	}
-	// update non-cs spikes
-	else if (tts < onset_cs)
-	{
-		for (uint32_t i = 0; i < NUM_CELL_TYPES; i++)
-		{
-			for (uint32_t j = 0; j < rast_cell_nums[i]; j++)
-			{
-				spike_sums[i].non_cs_spike_sum += cell_spikes[i][j];
-				spike_sums[i].non_cs_spike_counter[j] += cell_spikes[i][j];
-			}
-		}
-	}
+//	// update non-cs spikes
+//	else if (tts < onset_cs)
+//	{
+//#pragma omp parallel for
+//		for (uint32_t i = 0; i < NUM_CELL_TYPES; i++)
+//		{
+//			for (uint32_t j = 0; j < rast_cell_nums[i]; j++)
+//			{
+//				spike_sums[i].non_cs_spike_sum += cell_spikes[i][j];
+//				//spike_sums[i].non_cs_spike_counter[j] += cell_spikes[i][j];
+//			}
+//		}
+//	}
 }
 
 void Simulation::calc_fire_rates(float onset_cs, float offset_cs)
 {
-	float non_cs_time_secs = (onset_cs - 1) / 1000.0; // why only pre-cs? (Ask Joe)
+	//float non_cs_time_secs = (onset_cs - 1) / 1000.0; // why only pre-cs? (Ask Joe)
 	float cs_time_secs = (offset_cs - onset_cs) / 1000.0;
 
 	for (int i = 0; i < NUM_CELL_TYPES; i++)
 	{
 		// sort sums for medians 
-		std::sort(spike_sums[i].cs_spike_counter,
-			spike_sums[i].cs_spike_counter + rast_cell_nums[i]);
-		std::sort(spike_sums[i].non_cs_spike_counter,
-			spike_sums[i].non_cs_spike_counter + rast_cell_nums[i]);
+		//std::sort(spike_sums[i].cs_spike_counter,
+		//	spike_sums[i].cs_spike_counter + rast_cell_nums[i]);
+		//std::sort(spike_sums[i].non_cs_spike_counter,
+		//	spike_sums[i].non_cs_spike_counter + rast_cell_nums[i]);
 		
 		// calculate medians
-		firing_rates[i].non_cs_median_fr =
-			(spike_sums[i].non_cs_spike_counter[rast_cell_nums[i] / 2 - 1]
-		   + spike_sums[i].non_cs_spike_counter[rast_cell_nums[i] / 2]) / (2.0 * non_cs_time_secs);
-		firing_rates[i].cs_median_fr     =
-			(spike_sums[i].cs_spike_counter[rast_cell_nums[i] / 2 - 1]
-		   + spike_sums[i].cs_spike_counter[rast_cell_nums[i] / 2]) / (2.0 * cs_time_secs);
+		//firing_rates[i].non_cs_median_fr =
+		//	(spike_sums[i].non_cs_spike_counter[rast_cell_nums[i] / 2 - 1]
+		//   + spike_sums[i].non_cs_spike_counter[rast_cell_nums[i] / 2]) / (2.0 * non_cs_time_secs);
+		//firing_rates[i].cs_median_fr     =
+		//	(spike_sums[i].cs_spike_counter[rast_cell_nums[i] / 2 - 1]
+		//   + spike_sums[i].cs_spike_counter[rast_cell_nums[i] / 2]) / (2.0 * cs_time_secs);
 		
 		// calculate means
-		firing_rates[i].non_cs_mean_fr = spike_sums[i].non_cs_spike_sum / (non_cs_time_secs * rast_cell_nums[i]);
+		//firing_rates[i].non_cs_mean_fr = spike_sums[i].non_cs_spike_sum / (non_cs_time_secs * rast_cell_nums[i]);
 		firing_rates[i].cs_mean_fr     = spike_sums[i].cs_spike_sum / (cs_time_secs * rast_cell_nums[i]);
 	}
 }
@@ -310,9 +312,9 @@ void Simulation::reset_spike_sums()
 		for (int i = 0; i < NUM_CELL_TYPES; i++)
 		{
 			spike_sums[i].cs_spike_sum = 0;
-			spike_sums[i].non_cs_spike_sum = 0;
-			memset(spike_sums[i].cs_spike_counter, 0, rast_cell_nums[i] * sizeof(uint32_t));
-			memset(spike_sums[i].non_cs_spike_counter, 0, rast_cell_nums[i] * sizeof(uint32_t));
+			//spike_sums[i].non_cs_spike_sum = 0;
+			//memset(spike_sums[i].cs_spike_counter, 0, rast_cell_nums[i] * sizeof(uint32_t));
+			//memset(spike_sums[i].non_cs_spike_counter, 0, rast_cell_nums[i] * sizeof(uint32_t));
 		}
 }
 
@@ -458,13 +460,13 @@ void Simulation::run_session() {
 			}
 			sim_core->calcActivity(pf_pc_plast, ts);
 			//update_spike_sums(ts, onsetCS, onsetCS + csLength);
-			if (ts >= onsetCS - ms_pre_cs && ts < onsetCS + csLength + ms_post_cs)
-			{
-				fill_rasts(rast_ctr, psth_ctr);
-				fill_psths(psth_ctr);
-				psth_ctr++;
-				rast_ctr++;
-			}
+			//if (ts >= onsetCS - ms_pre_cs && ts < onsetCS + csLength + ms_post_cs)
+			//{
+			//	fill_rasts(rast_ctr, psth_ctr);
+			//	fill_psths(psth_ctr);
+			//	psth_ctr++;
+			//	rast_ctr++;
+			//}
 		}
 		//calc_fire_rates(onsetCS, onsetCS + csLength);
 		//LOG_INFO("PC Pop mean CS fr: %.2f", firing_rates[PC].cs_mean_fr);

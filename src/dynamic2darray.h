@@ -12,8 +12,9 @@
 #include <cstddef>
 #include <cstdint>
 #include <time.h>
-#include "sfmt.h"
+#include <omp.h>
 
+#include "sfmt.h"
 #include "file_utility.h"
 
 template<typename Type>
@@ -35,7 +36,10 @@ Type** allocate2DArray(uint64_t numRows, uint64_t numCols)
 template <typename Type>
 Type ** transpose2DArray(Type **in, uint64_t num_rows_old, uint64_t num_cols_old)
 {
+	double start, stop; 
 	Type ** result = allocate2DArray<Type>(num_cols_old, num_rows_old);
+	start = omp_get_wtime();
+	#pragma omp parallel for
 	for (size_t i = 0; i < num_rows_old; i++)
 	{
 		for (size_t j = 0; j < num_cols_old; j++)
@@ -43,6 +47,8 @@ Type ** transpose2DArray(Type **in, uint64_t num_rows_old, uint64_t num_cols_old
 			result[j][i] = in[i][j];
 		}
 	}
+	stop = omp_get_wtime();
+	LOG_INFO("transpose took %0.2fs", stop - start);
 	return result;
 }
 

@@ -443,34 +443,40 @@ void MZone::setErrDrive(float errDriveRelative)
 
 void MZone::calcPCActivities()
 {
-#pragma omp parallel for
-	for (int i = 0; i < num_pc; i++)
+#pragma omp parallel \
+default (none), shared (num_pc, gIncGRtoPC, gDecGRtoPC, gIncBCtoPC, gDecBCtoPC, \
+	  gIncSCtoPC, gDecSCtoPC, gLeakPC, eLeakPC, eBCtoPC, eSCtoPC, \
+	  threshDecPC, threshRestPC, threshMaxPC)
 	{
-		inputPFPCSumH[i] = 0;
-		for (int j = 0; j < numGPUs; j++)
+#pragma omp for
+		for (int i = 0; i < num_pc; i++)
 		{
-			inputPFPCSumH[i] += inputSumPFPCMZH[j][i];
+			inputPFPCSumH[i] = 0;
+			for (int j = 0; j < numGPUs; j++)
+			{
+				inputPFPCSumH[i] += inputSumPFPCMZH[j][i];
+			}
+
+			as->gPFPC[i] += inputPFPCSumH[i] * gIncGRtoPC;
+			as->gPFPC[i] *= gDecGRtoPC;
+			as->gBCPC[i] += as->inputBCPC[i] * gIncBCtoPC;
+			as->gBCPC[i] *= gDecBCtoPC;
+			as->gSCPC[i] += as->inputSCPC[i] * gIncSCtoPC;
+			as->gSCPC[i] *= gDecSCtoPC;
+
+			as->vPC[i] += (gLeakPC * (eLeakPC - as->vPC[i]))
+						- (as->gPFPC[i] * as->vPC[i])
+						+ (as->gBCPC[i] * (eBCtoPC - as->vPC[i]))
+						+ (as->gSCPC[i] * (eSCtoPC - as->vPC[i]));
+
+			as->threshPC[i] += threshDecPC * (threshRestPC - as->threshPC[i]);
+
+			as->apPC[i]    = as->vPC[i] > as->threshPC[i];
+			as->apBufPC[i] = (as->apBufPC[i] << 1) | (as->apPC[i] * 0x00000001);
+
+			as->threshPC[i] = as->apPC[i] * threshMaxPC + (!as->apPC[i]) * as->threshPC[i];
+			//as->pcPopAct   += as->apPC[i];
 		}
-
-		as->gPFPC[i] += inputPFPCSumH[i] * gIncGRtoPC;
-		as->gPFPC[i] *= gDecGRtoPC;
-		as->gBCPC[i] += as->inputBCPC[i] * gIncBCtoPC;
-		as->gBCPC[i] *= gDecBCtoPC;
-		as->gSCPC[i] += as->inputSCPC[i] * gIncSCtoPC;
-		as->gSCPC[i] *= gDecSCtoPC;
-
-		as->vPC[i] += (gLeakPC * (eLeakPC - as->vPC[i]))
-					- (as->gPFPC[i] * as->vPC[i])
-					+ (as->gBCPC[i] * (eBCtoPC - as->vPC[i]))
-					+ (as->gSCPC[i] * (eSCtoPC - as->vPC[i]));
-
-		as->threshPC[i] += threshDecPC * (threshRestPC - as->threshPC[i]);
-
-		as->apPC[i]    = as->vPC[i] > as->threshPC[i];
-		as->apBufPC[i] = (as->apBufPC[i] << 1) | (as->apPC[i] * 0x00000001);
-
-		as->threshPC[i] = as->apPC[i] * threshMaxPC + (!as->apPC[i]) * as->threshPC[i];
-		as->pcPopAct   += as->apPC[i];
 	}
 }
 
@@ -500,54 +506,62 @@ void MZone::calcPCActivities()
 
 void MZone::calcBCActivities()
 {
-#pragma omp parallel for
-	for (int i = 0; i < num_bc; i++)
+#pragma omp parallel \
+default (none), shared (num_bc, gIncGRtoBC, gDecGRtoBC, gIncPCtoBC, gDecPCtoBC, \
+	  gLeakBC, eLeakBC, ePCtoBC, threshDecBC, threshRestBC, threshMaxBC)
 	{
-		inputSumPFBCH[i] = 0;
-		for (int j = 0; j < numGPUs; j++)
+#pragma omp for
+		for (int i = 0; i < num_bc; i++)
 		{
-			inputSumPFBCH[i] += inputSumPFBCMZH[j][i];
+			inputSumPFBCH[i] = 0;
+			for (int j = 0; j < numGPUs; j++)
+			{
+				inputSumPFBCH[i] += inputSumPFBCMZH[j][i];
+			}
+
+			as->gPFBC[i] += inputSumPFBCH[i] * gIncGRtoBC;
+			as->gPFBC[i] *= gDecGRtoBC;
+			as->gPCBC[i] += as->inputPCBC[i] * gIncPCtoBC;
+			as->gPCBC[i] *= gDecPCtoBC;
+
+			as->vBC[i] += (gLeakBC * (eLeakBC - as->vBC[i]))
+						- (as->gPFBC[i] * as->vBC[i])
+						+ (as->gPCBC[i] * (ePCtoBC - as->vBC[i]));
+
+			as->threshBC[i] += threshDecBC * (threshRestBC - as->threshBC[i]);
+			as->apBC[i] = as->vBC[i] > as->threshBC[i];
+			as->apBufBC[i] = (as->apBufBC[i] << 1) | (as->apBC[i] * 0x00000001);
+
+			as->threshBC[i] = as->apBC[i] * threshMaxBC + (1-as->apBC[i]) * (as->threshBC[i]);
 		}
-
-		as->gPFBC[i] = as->gPFBC[i] + inputSumPFBCH[i] * gIncGRtoBC;
-		as->gPFBC[i] = as->gPFBC[i] * gDecGRtoBC;
-		as->gPCBC[i] = as->gPCBC[i] + as->inputPCBC[i] * gIncPCtoBC;
-		as->gPCBC[i] = as->gPCBC[i] * gDecPCtoBC;
-
-		as->vBC[i] = as->vBC[i] +
-				(gLeakBC * (eLeakBC - as->vBC[i])) -
-				(as->gPFBC[i] * as->vBC[i]) +
-				(as->gPCBC[i] * (ePCtoBC - as->vBC[i]));
-
-		as->threshBC[i] = as->threshBC[i] + threshDecBC * (threshRestBC - as->threshBC[i]);
-		as->apBC[i] = as->vBC[i] > as->threshBC[i];
-		as->apBufBC[i] = (as->apBufBC[i] << 1) | (as->apBC[i] * 0x00000001);
-
-		as->threshBC[i] = as->apBC[i] * threshMaxBC + (!as->apBC[i]) * (as->threshBC[i]);
 	}
 }
 
 void MZone::calcSCActivities()
 {
-#pragma omp parallel for
-	for (int i = 0; i < num_sc; i++)
+#pragma omp parallel \
+default (none), shared (num_sc, gIncGRtoSC, gDecGRtoSC, gLeakSC, eLeakSC, threshDecSC, threshRestSC, threshMaxSC)
 	{
-		inputSumPFSCH[i] = 0;
-		for (int j = 0; j < numGPUs; j++)
+#pragma omp for
+		for (int i = 0; i < num_sc; i++)
 		{
-			inputSumPFSCH[i] += inputSumPFSCMZH[j][i];
+			inputSumPFSCH[i] = 0;
+			for (int j = 0; j < numGPUs; j++)
+			{
+				inputSumPFSCH[i] += inputSumPFSCMZH[j][i];
+			}
+
+			as->gPFSC[i] += inputSumPFSCH[i] * gIncGRtoSC;
+			as->gPFSC[i] *= gDecGRtoSC;
+
+			as->vSC[i] += gLeakSC * (eLeakSC - as->vSC[i]) - as->gPFSC[i] * as->vSC[i];
+			as->threshSC[i] += threshDecSC * (threshRestSC - as->threshSC[i]);
+
+			as->apSC[i] = as->vSC[i] > as->threshSC[i];
+			as->apBufSC[i] = (as->apBufSC[i] << 1) | (as->apSC[i] * 0x00000001);
+
+			as->threshSC[i] = as->apSC[i] * threshMaxSC + (1-as->apSC[i]) * as->threshSC[i];
 		}
-
-		as->gPFSC[i] += inputSumPFSCH[i] * gIncGRtoSC;
-		as->gPFSC[i] *= gDecGRtoSC;
-
-		as->vSC[i] += gLeakSC * (eLeakSC - as->vSC[i]) - as->gPFSC[i] * as->vSC[i];
-		as->threshSC[i] += threshDecSC * (threshRestSC - as->threshSC[i]);
-
-		as->apSC[i] = as->vSC[i] > as->threshSC[i];
-		as->apBufSC[i] = (as->apBufSC[i] << 1) | (as->apSC[i] * 0x00000001);
-
-		as->threshSC[i] = as->apSC[i] * threshMaxSC + (1-as->apSC[i]) * as->threshSC[i];
 	}
 }
 
@@ -567,12 +581,10 @@ void MZone::calcIOActivities()
 
 		for (int j = 0; j < num_p_io_from_nc_to_io; j++)
 		{
-			as->gNCIO[i * num_p_io_from_nc_to_io + j] = as->gNCIO[i * num_p_io_from_nc_to_io + j]
-			   * exp(-msPerTimeStep /
+			as->gNCIO[i * num_p_io_from_nc_to_io + j] *= exp(-msPerTimeStep /
 				(-gDecTSofNCtoIO * exp(-as->gNCIO[i * num_p_io_from_nc_to_io + j] / gDecTTofNCtoIO)
 				 + gDecT0ofNCtoIO));
-			as->gNCIO[i * num_p_io_from_nc_to_io + j] = as->gNCIO[i * num_p_io_from_nc_to_io + j]
-			   + as->inputNCIO[i * num_p_io_from_nc_to_io + j]
+			as->gNCIO[i * num_p_io_from_nc_to_io + j] += as->inputNCIO[i * num_p_io_from_nc_to_io + j]
 			   * gIncNCtoIO * exp(-as->gNCIO[i * num_p_io_from_nc_to_io + j] / gIncTauNCtoIO);
 			gNCSum += as->gNCIO[i * num_p_io_from_nc_to_io + j];
 
@@ -581,29 +593,25 @@ void MZone::calcIOActivities()
 
 		gNCSum = 1.5 * gNCSum / 3.1;
 
-		as->vIO[i] = as->vIO[i] + gLeakIO * (eLeakIO - as->vIO[i]) +
-				gNCSum * (eNCtoIO - as->vIO[i]) + as->vCoupleIO[i] +
-				as->errDrive + gNoise;
+		as->vIO[i] += gLeakIO * (eLeakIO - as->vIO[i])
+					+ gNCSum * (eNCtoIO - as->vIO[i]) + as->vCoupleIO[i]
+					+ as->errDrive + gNoise;
 
 		as->apIO[i] = as->vIO[i] > as->threshIO[i];
 		as->apBufIO[i] = (as->apBufIO[i] << 1) | (as->apIO[i] * 0x00000001);
 
 		as->threshIO[i] = threshMaxIO * as->apIO[i] +
-				(!as->apIO[i]) * (as->threshIO[i] + threshDecIO * (threshRestIO - as->threshIO[i]));
+				(1.0-as->apIO[i]) * (as->threshIO[i] + threshDecIO * (threshRestIO - as->threshIO[i]));
 	}
 	as->errDrive = 0;
 }
 
+//FIXME: getting no spikes in NC. maybe has something to do with this: gPCNCSum *= (msPerTimeStep / (float)num_p_nc_from_pc_to_nc);
 void MZone::calcNCActivities()
 {
-//TODO: make function calcActivities which takes in the parameters which vary dep
-//		on the type of activity that is being calculated. Else this is redundant  
-float gDecay = exp(-1.0 / 20.0); 
-
 	for (int i = 0; i < num_nc; i++)
 	{
 		float gPCNCSum = 0;
-
 		int inputPCNCSum = 0;
 
 		for (int j = 0; j < num_p_nc_from_pc_to_nc; j++)
@@ -614,17 +622,16 @@ float gDecay = exp(-1.0 / 20.0);
 				as->inputPCNC[i * num_p_nc_from_pc_to_nc + j] * gIncAvgPCtoNC
 				* (1 - as->gPCNC[i * num_p_nc_from_pc_to_nc + j]);
 			gPCNCSum += as->gPCNC[i * num_p_nc_from_pc_to_nc + j];
-
 		}
 
-		gPCNCSum = gPCNCSum * msPerTimeStep / ((float)num_p_nc_from_pc_to_nc);
-		as->vNC[i] = as->vNC[i] + gLeakNC * (eLeakNC - as->vNC[i]) + gPCNCSum * (ePCtoNC - as->vNC[i]);
+		gPCNCSum *= (msPerTimeStep / (float)num_p_nc_from_pc_to_nc);
+		as->vNC[i] += gLeakNC * (eLeakNC - as->vNC[i]) + gPCNCSum * (ePCtoNC - as->vNC[i]);
 		
-		as->threshNC[i] = as->threshNC[i] + threshDecNC * (threshRestNC - as->threshNC[i]);
+		as->threshNC[i] += threshDecNC * (threshRestNC - as->threshNC[i]);
 		as->apNC[i] = as->vNC[i] > as->threshNC[i];
 		as->apBufNC[i] = (as->apBufNC[i] << 1) | (as->apNC[i] * 0x00000001);
 
-		as->threshNC[i] = as->apNC[i] * threshMaxNC + (!as->apNC[i]) * as->threshNC[i];
+		as->threshNC[i] = as->apNC[i] * threshMaxNC + (1.0-as->apNC[i]) * as->threshNC[i];
 	}
 }
 

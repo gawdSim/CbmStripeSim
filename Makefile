@@ -44,11 +44,11 @@ RELEASE_OBJS := $(CUDA_RELEASE_OBJS) $(NON_CUDA_RELEASE_OBJS)
 DEBUG_OBJS   := $(CUDA_DEBUG_OBJS) $(NON_CUDA_DEBUG_OBJS)
 
 NVCC       := nvcc
-NVCC_FLAGS := -arch=native -Xcompiler -fPIC -O3
-NVCC_DEBUG_FLAGS := -arch=native -maxrregcount 24 -Xcompiler -fPIC -g -G
+NVCC_FLAGS := -arch=sm_52 -Xcompiler -fPIC -O3
+NVCC_DEBUG_FLAGS := -arch=sm_52 -maxrregcount 24 -Xcompiler -fPIC -g -G
 
 CPP             := g++-11
-CPP_FLAGS       := -m64 -pipe -std=c++14 -fopenmp -O3  -fPIC
+CPP_FLAGS       := -m64 -pipe -std=c++14 -fopenmp -O3 -fPIC
 CPP_DEBUG_FLAGS := -m64 -pipe -std=c++14 -fopenmp -g -D DEBUG -fPIC 
 
 LD             := g++-11

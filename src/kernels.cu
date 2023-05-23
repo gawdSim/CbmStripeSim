@@ -28,7 +28,6 @@ __global__ void curandSetupKernel(randState *state, uint32_t seed)
 	curand_init(seed, id, 0, &state[id]);
 }
 
-//FIXME: for each ts, rng produces same number
 template <typename randState>
 __global__ void curandGenerateUniformsKernel(randState *state, float *randoms, uint32_t rand_offset)
 {
@@ -211,9 +210,6 @@ __global__ void sumPFBCSCOutGPU(uint32_t nRows, uint32_t *bcscOut, size_t bcscOu
 	}
 	bcscOutSum[index]=tempSum;
 }
-
-
-
 
 //**---------------end GR Kernels-------------------**
 

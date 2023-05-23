@@ -25,8 +25,8 @@ PoissonRegenCells::PoissonRegenCells(uint32_t num_gpus, std::fstream &psth_file_
 	// bad: should read this in from file so you do not have
 	// to change in two places for every isi.
 	num_in_template_ts = 5000;
-	num_trials = 1000;
-	isi = 2000; // obviously must match too
+	num_trials = 500;
+	isi = 250; // obviously must match too
 	pre_cs_ms = 2000; // must match what we ran in cbmsim -> gives correct alignment to cs
 	post_cs_ms = 400; // this is arbitrary
 	remaining_in_trial = num_in_template_ts - pre_cs_ms - isi - post_cs_ms;
@@ -46,7 +46,7 @@ PoissonRegenCells::PoissonRegenCells(uint32_t num_gpus, std::fstream &psth_file_
 	threshInc = 1 - exp(-1.0 / threshIncTau); // for now, hard code in time-bin size
 	sPerTS = msPerTimeStep / 1000.0;
 
-	expansion_factor = 32; // by what factor are we expanding the granule cell number?
+	expansion_factor = 128; // by what factor are we expanding the granule cell number?
 	num_gr_old = num_gr / expansion_factor;
 
 	threshs_h = (float *)calloc(num_gr, sizeof(float));
@@ -291,7 +291,7 @@ void PoissonRegenCells::initCURAND(cudaStream_t **streams)
 	grActRandNums = new float*[numGPUs];
 
   // we're just playing with some numbers rn
-	numGRPerRandBatch = 32768; 
+	numGRPerRandBatch = 1048576; 
 	updateGRRandNumGRPerB = 512;
 	updateGRRandNumBlocks = numGRPerRandBatch / updateGRRandNumGRPerB;
 	dim3 updateGRRandGridDim(updateGRRandNumBlocks);
@@ -326,30 +326,21 @@ void PoissonRegenCells::calcGRPoissActivity(size_t ts, cudaStream_t **streams, u
 {
 	uint32_t apBufGRHistMask = (1 << (int)tsPerHistBinGR) - 1;
 
-	for (int i = 0; i < numGPUs; i++)
-	{
-		cudaSetDevice(i + gpuIndStart);
-		cudaDeviceSynchronize();
-	}
 	for(int i = 0; i < numGPUs; i++)
 	{
 	    cudaSetDevice(i + gpuIndStart);
     // generate the random numbers in batches
-	  for (int j = 0; j < numGRPerGPU; j += numGRPerRandBatch)
-	  {
-	    callCurandGenerateUniformKernel<curandStateMRG32k3a>(streams[i][3],
-	    	mrg32k3aRNGs[i], updateGRRandNumBlocks, updateGRRandNumGRPerB,
-	    	grActRandNums[i], j);
-		//if (ts == 0) {
-		//	LOG_DEBUG("Last curand kernel error: %s", cudaGetErrorString(cudaGetLastError()));
-		//}
-	  }
+	  //for (int j = 0; j < numGRPerGPU; j += numGRPerRandBatch)
+	  //{
+	  //  callCurandGenerateUniformKernel<curandStateMRG32k3a>(streams[i][3],
+	  //  	mrg32k3aRNGs[i], updateGRRandNumBlocks, updateGRRandNumGRPerB,
+	  //  	grActRandNums[i], j);
+	  //}
 
     callGRActKernel(streams[i][streamN], calcGRActNumBlocks, calcGRActNumGRPerB,
       threshs_d[i], aps_d[i], aps_buf_d[i], aps_hist_d[i], grActRandNums[i],
 	  gr_templates_t_d[i], gr_templates_t_pitch[i], numGROldPerGPU,
       ts, sPerTS, pre_cs_ms, isi, num_out_template_ts, apBufGRHistMask, threshBase, threshMax, threshInc);
-	//LOG_DEBUG("Last calc GR act kernel error: %s", cudaGetErrorString(cudaGetLastError()));
   }
 }
 

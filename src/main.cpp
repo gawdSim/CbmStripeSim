@@ -4,6 +4,8 @@
 #include <omp.h>
 #include <iomanip>
 
+#include <valgrind/callgrind.h>
+
 #include "commandline.h"
 #include "file_parse.h"
 #include "logger.h"
@@ -34,18 +36,23 @@ int main(int argc, char **argv)
 //#endif
 
 	logger_setLevel(LogLevel_DEBUG);
+
 	parsed_commandline p_cl = {};
 	parse_and_validate_parsed_commandline(&argc, &argv, p_cl);
 	Simulation stripe_sim(p_cl);
 
-	omp_set_num_threads(8); /* for 4 gpus, 8 is the sweet spot. Unsure for 2. */
+	omp_set_num_threads(4); /* for 4 gpus, 8 is the sweet spot. Unsure for 2. */
 
 	if (p_cl.vis_mode == "TUI") {
 		if (!p_cl.build_file.empty()) {
 			stripe_sim.build_sim();
 			stripe_sim.save_sim();
 		} else if (!p_cl.session_file.empty()) {
+			CALLGRIND_START_INSTRUMENTATION;
+			CALLGRIND_TOGGLE_COLLECT;
 			stripe_sim.run_session();
+			CALLGRIND_TOGGLE_COLLECT;
+			CALLGRIND_STOP_INSTRUMENTATION;
 		}
 	}
 	else if (p_cl.vis_mode == "GUI") {
